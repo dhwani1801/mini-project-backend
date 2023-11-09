@@ -1,9 +1,9 @@
-import userController from "./userController";
+//import userController from "./userController";
 import authController from './authController';
 import quickbooksController from "./quickBookController";
 
 export {
-    userController,
+  //  userController,
     authController,
     quickbooksController,
 };

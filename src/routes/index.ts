@@ -1,6 +1,5 @@
 import express from "express";
 import authRoutes from "./authRoutes";
-import userRoutes from "./userRoutes";
 import quickbooksRoutes from "./quickBooksRoutes";
 
 const router = express.Router();
