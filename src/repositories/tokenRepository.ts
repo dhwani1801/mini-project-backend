@@ -1,18 +1,6 @@
 import { prisma } from "../client/prisma";
 
 class TokenRepository {
-  // async create(accessToken: string) {
-  // 	try {
-  // 		const token = await prisma.user.create({
-  // 			data: {
-  // 				accessToken
-  // 			},
-  // 		});
-  // 		return token;
-  // 	} catch (err) {
-  // 		throw err;
-  // 	}
-  // }
 
   async deleteToken(email: string) {
     try {
@@ -46,7 +34,7 @@ class TokenRepository {
     }
   }
 
-  async TokenStatus(email: string) {
+  async tokenStatus(email: string) {
     try {
       const token = await prisma.user.findMany({
         where: {
@@ -63,7 +51,7 @@ class TokenRepository {
     }
   }
 
-  async SavedToken(email: string) {
+  async savedToken(email: string) {
     try {
       const token = await prisma.user.findMany({
         where: {

@@ -1,6 +1,10 @@
+import { error } from "console";
 import { prisma } from "../client/prisma";
+import qbRepository from "../repositories/quickbookRepository";
 const OAuthClient = require("intuit-oauth");
 const QuickBooks = require("node-quickbooks");
+import moment from 'moment-timezone';
+import { CustomerObject } from "../interfaces";
 
 const authClient = new OAuthClient({
     clientId: process.env?.QUICKBOOKS_CLIENT_ID,
@@ -11,91 +15,45 @@ const authClient = new OAuthClient({
 
 
 class QuickBookServices {
-    // Get Quickbooks authentication URL
 
+    /**
+     * Get Quickbooks authentication URL */
     async getauthURL() {
         const authUri = authClient.authorizeUri({
             scope: [OAuthClient.scopes.Accounting],
             state: "intuit-test",
         });
-
         return { authUri };
     }
 
+
     async createAuthToken(url: string) {
-		try {
-			const authToken = await authClient.createToken(url);
-			return authToken.token;
-		} catch (err) {
-			throw err;
-		}
-	}
-
-    async refreshToken(refreshToken: string) {
-		try {
-			const authResponse = await authClient.refreshUsingToken(refreshToken);
-			return authResponse;
-		} catch (err) {
-			throw err;
-		}
-	}
-    
-
-    async getTokenInfo(url: any, user: any) {
-        if (url && url.includes("error")) {
-            throw new Error();
-        }
-
-        const data = await authClient.createToken(url);
-        console.log('data : ', data)
-        if (data?.token &&
-            data.token?.access_token &&
-            data.token?.realmId &&
-            data.token?.refresh_token) {
-            // Get the access token
-            const companyData = await this.getCompanyInfo(
-                data?.token?.access_token,
-                data?.token?.realmId,
-                data?.token?.refresh_token
-            );
-            console.log('comapany data : ', companyData)
-            // console.log('companyData: ', companyData);
-
-            if (companyData) {
-                // Combine the access token data
-                const responseData = {
-                    access_token: data.token?.access_token,
-                    realmId: data.token?.realmId,
-                    refresh_token: data?.token?.refresh_token,
-                    companyName: companyData?.CompanyName
-                };
-                console.log('responsedata : ', responseData)
-                const respdata = {
-                    data: responseData
-                }
-                console.log('respdata : ', respdata);
-
-                // Check if a connection already exists for quickbooks online
-                //       const qboConnection = await saveConnectionsRepository.checkConnectionAlreadyPresent(user, responseData.companyName, ChannelName.QBO);
-                //       if (qboConnection) {
-                //           const error = new CustomError(409, "Connection is already established");
-                //           throw error;
-                //       } else {
-                //           const createQboConnection = await saveConnectionsRepository.saveConnectionsDetails(ChannelType.ACCOUNTING, ChannelName.QBO, respdata, user, responseData?.companyName,responseData?.realmId);
-                //           return createQboConnection;
-                //       }
-                //   } else {
-                //       const error = new CustomError(409, "Failed to get token");
-                //           throw error;
-                //   }
-
-            } else {
-                const error = new Error();
-                throw error;
-            }
+        try {
+            const authToken = await authClient.createToken(url);
+            return authToken.token;
+        } catch (err) {
+            throw err;
         }
     }
 
+
+    async refreshToken(refreshToken: string) {
+        try {
+            const authResponse = await authClient.refreshUsingToken(refreshToken);
+            return authResponse;
+        } catch (err) {
+            throw err;
+        }
+    }
+ 
+
+    /**
+     * get company information
+     * @param accessToken 
+     * @param realmId 
+     * @param refreshToken 
+     * @returns 
+     */
     async getCompanyInfo(
         accessToken: string,
         realmId: string,
@@ -104,7 +62,6 @@ class QuickBookServices {
         return new Promise((resolve, reject) => {
             const qbo = new QuickBooks(
                 process.env?.QUICKBOOKS_CLIENT_ID,
-
                 process.env?.QUICKBOOKS_CLIENT_SECRET,
                 accessToken,
                 true,
@@ -125,7 +82,15 @@ class QuickBookServices {
         });
     }
 
-    async getEmployees(
+
+    /**
+     * get customers
+     * @param accessToken 
+     * @param realmId 
+     * @param refreshToken 
+     * @returns 
+     */
+    async getCustomers(
         accessToken: string,
         realmId: string,
         refreshToken: string
@@ -143,9 +108,9 @@ class QuickBookServices {
                 "2.0",
                 refreshToken
             );
-            qbo.findEmployees(
-                [{ field: 'Active', value: [true, false], operator: 'IN' }],
-                // [{ field: 'fetchAll', value: true }],
+            qbo.findCustomers(
+                //  [{ field: 'Active', value: [true, false], operator: 'IN' }],
+                [{ field: 'fetchAll', value: true }],
                 async function (err: any, response: any) {
                     if (err) {
                         reject(err);
@@ -157,6 +122,142 @@ class QuickBookServices {
         });
     }
 
+
+    /**
+     * get access token
+     * @param companyId 
+     * @returns 
+     */
+    async getAccessToken(companyId: any) {
+        try {
+            const companyDetails = await qbRepository.getDetails(companyId);
+            if (!companyDetails) {
+                throw error(404, 'Company not found');
+            }
+
+            const accessTokenUTCDate = moment(companyDetails?.accessTokenUTCDate);
+            const currentDateTime = moment(new Date());
+
+            const minutes: string | number = currentDateTime.diff(
+                accessTokenUTCDate,
+                'minutes'
+            );
+
+            if (minutes >= 45) {
+                const utc = moment.utc().valueOf();
+                const authResponse = await this.refreshToken(
+                    companyDetails?.refreshToken as string
+                );
+                if (authResponse != null) {
+                    const updatedCompany = await qbRepository.updateCompany(
+                        companyId,
+                        {
+                            accessToken: authResponse?.token?.access_token,
+                            refreshToken: authResponse?.token?.refresh_token,
+                            accessTokenUTCDate: moment.utc(utc).toDate(),
+                        }
+                    );
+                    return updatedCompany;
+                }
+            } else {
+                return companyDetails;
+            }
+        } catch (err) {
+            throw err;
+        }
+    }
+
+
+    /**
+     * updates customer
+     * @param accessToken 
+     * @param realmId 
+     * @param refreshToken 
+     * @param customerObject 
+     * @returns 
+     */
+    async updateCustomer(accessToken: string,
+        realmId: string,
+        refreshToken: string,
+        customerObject: any) {
+        return new Promise((resolve, reject) => {
+            const qbo = new QuickBooks(
+                process.env?.QUICKBOOKS_CLIENT_ID,
+                process.env?.QUICKBOOKS_CLIENT_SECRET,
+                accessToken,
+                true,
+                realmId,
+                process.env?.QUICKBOOKS_ENVIRONMENT == 'sandbox' ? true : false,
+                true,
+                null,
+                '2.0',
+                refreshToken
+            );
+            qbo.updateCustomer(customerObject, (err: any, response: any) => {
+                if (err) {
+                    reject(err);
+                } else {
+                //     const updatedCustomer =  prisma.customer.update({
+                //         where: { qboCustomerId: response.Id },
+                //         data: {
+                //             customerId: customerObject.PrimaryEmailAddr.Address,
+                //             givenName: customerObject.GivenName,
+                //             phone: customerObject.PrimaryPhone.FreeFormNumber,
+                //         },
+                //     });
+    
+                //   resolve(updatedCustomer);
+                   console.log(response)
+                    resolve(response);
+                }
+            });
+        });
+    }
+
+
+    /**
+     * creates customer
+     * @param accessToken 
+     * @param realmId 
+     * @param refreshToken 
+     * @param customerObject 
+     * @returns 
+     */
+    async createCustomer(accessToken: string,
+        realmId: string,
+        refreshToken: string,
+        customerObject: CustomerObject) {
+        return new Promise((resolve, reject) => {
+            const qbo = new QuickBooks(
+                process.env?.QUICKBOOKS_CLIENT_ID,
+                process.env?.QUICKBOOKS_CLIENT_SECRET,
+                accessToken,
+                true,
+                realmId,
+                process.env?.QUICKBOOKS_ENVIRONMENT == 'sandbox' ? true : false,
+                true,
+                null,
+                '2.0',
+                refreshToken
+            );
+
+            qbo.createCustomer(customerObject, (err: any, response: any) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    const createdCustomer = prisma.customer.create({
+                        data: {
+                            qboCustomerId: response.Id,
+                            customerId: customerObject.PrimaryEmailAddr.Address,
+                            givenName: customerObject.GivenName,
+                            phone: customerObject.PrimaryPhone.FreeFormNumber,
+                        },
+                    });
+                    resolve(createdCustomer);
+                }
+            });
+        });
+    }
 }
 
 export default new QuickBookServices();

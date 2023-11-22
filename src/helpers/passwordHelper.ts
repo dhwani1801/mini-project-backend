@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 
 // Encrypt Password
 export const hashPassword = async (plaintextPassword: string) => {
-	const hash = await bcrypt.hash(plaintextPassword, 10); // Store hash in the database
+	const hash = await bcrypt.hash(plaintextPassword, 10); 
 	return hash;
 };
 

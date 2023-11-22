@@ -4,7 +4,7 @@ export class CustomError {
 	additionalInfo: any;
 	constructor(
 		status: number = 500,
-		message: string = 'Something went wrong',
+		message: string = 'SOMETHING WENT WRONG',
 		additionalInfo: any = {}
 	) {
 		this.status = status;

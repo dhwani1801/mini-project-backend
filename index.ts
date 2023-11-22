@@ -20,9 +20,7 @@ app.use(
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-/**
- * routes
- */
+
 app.use('/mini-project', routes);
 
 const PORT = config.port || 8080;

@@ -5,7 +5,6 @@ import quickbooksRoutes from "./quickBooksRoutes";
 const router = express.Router();
 
 router.use("/auth", authRoutes);
-//router.use("/users", userRoutes);
 router.use("/qbo", quickbooksRoutes);
 
 export default router;

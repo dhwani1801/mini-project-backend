@@ -1,17 +1,9 @@
 import { Request } from 'express';
-import UserInfo from './user';
-
-export interface DefaultRequestUser {
-	id: string,
-	email: string,
-	companyId: string
-}
 
 export interface RequestExtended extends Request {
 	user?: any;
-	file?: any;
-	// session: any;
-	idAdmin?: any;
+	// file?: any;
+	// idAdmin?: any;
 	accessToken?: any;
 	refreshToken?: any;
 }

@@ -35,7 +35,11 @@ export const generateForgotPasswordToken = (payload: any) => {
   
 // Verify Access Token
 export const verifyAccessToken = (accessToken: string) => {
+  console.log('6666')
+  console.log('config : ', config.accessTokenSecretKey)
   const verified = jwt.verify(accessToken, config.accessTokenSecretKey);
+
+  console.log('verified : ' , verified)
   return verified;
 };
 
