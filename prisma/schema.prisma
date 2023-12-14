@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,38 +8,53 @@ datasource db {
 }
 
 model User {
-  id                           String        @id @default(uuid())
-  email                        String        @unique
-  firstName                    String?
-  lastName                     String?
-  phone                        String?
-  password                     String?
-  forgotPasswordToken          String?
-  isVerified                   Boolean       @default(false)
+  id                  String   @id @default(uuid())
+  email               String   @unique
+  firstName           String?
+  lastName            String?
+  phone               String?
+  password            String?
+  isVerified          Boolean  @default(false)
+  forgotPasswordToken String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
   accessToken         String?
-  createdAt                    DateTime      @default(now())
-  updatedAt                    DateTime      @updatedAt
-
 }
 
 model Company {
-  id                         String                 @id @default(uuid())
-  tenantName                 String?
-  tenantID                   String?
-  accessToken                String?
-  refreshToken               String?
-  accessTokenUTCDate         DateTime?
-  customerLastSyncDate       DateTime?
-  createdAt                  DateTime               @default(now())
-  updatedAt                  DateTime               @updatedAt
+  id                   String    @id @default(uuid())
+  tenantName           String?
+  tenantID             String?
+  accessToken          String?
+  refreshToken         String?
+  accessTokenUTCDate   DateTime?
+  customerLastSyncDate DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 }
 
 model Customer {
-  id                  String                @id @default(uuid())
-  qboCustomerId       String                @unique
-  customerId          String
-  givenName           String
-  phone               String?
-  createdAt           DateTime               @default(now())
-  updatedAt           DateTime               @updatedAt
+  id            String   @id @default(uuid())
+  qboCustomerId String   @unique
+  customerId    String
+  givenName     String
+  phone         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  tenantID      String
+}
+
+model Connections {
+  id                 Int       @id @default(autoincrement())
+  organizationId     String?
+  channelType        String?
+  channelName        String?
+  companyName        String?
+  companyId          String?
+  tokenDetails       String?
+  isActiveConnection Boolean   @default(true)
+  createdDate        DateTime? @default(now())
+  modifiedDate       DateTime? @default(now())
+  createdBy          String?
+  modifiedBy         String?
 }

@@ -32,8 +32,8 @@ export const isAuthenticated = async (
 
     req.user = {
       id: verifiedAccessToken.id,
-      email: verifiedAccessToken.email
-    }
+      email: verifiedAccessToken.email,
+    };
 
     next();
   } catch (err: any) {

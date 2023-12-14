@@ -1,5 +1,6 @@
 export default interface CustomerObject {
     GivenName: string;
+    tenantID? : string;
     PrimaryEmailAddr: {
       Address: string;
     };

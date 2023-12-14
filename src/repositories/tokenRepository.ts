@@ -1,7 +1,6 @@
 import { prisma } from "../client/prisma";
 
 class TokenRepository {
-
   async deleteToken(email: string) {
     try {
       const token = await prisma.user.update({

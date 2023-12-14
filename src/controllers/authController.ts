@@ -5,19 +5,18 @@ import { RequestExtended } from "../interfaces/global";
 import authServices from "../services/authService";
 import { hashPassword } from "../helpers/passwordHelper";
 import { getRegisterEmailTemplateInfra } from "../helpers/emailTemplateHelper";
-import {userRepository,} from "../repositories";
+import { userRepository } from "../repositories";
 import config from "../../config";
 import sendEmail from "../helpers/emailHelper";
-import {generateForgotPasswordToken} from "../helpers/tokenHelper";
+import { generateForgotPasswordToken } from "../helpers/tokenHelper";
 
 class AuthController {
-
   /**
    * registration api
-   * @param req 
-   * @param res 
-   * @param next 
-   * @returns 
+   * @param req
+   * @param res
+   * @param next
+   * @returns
    */
   async register(req: Request, res: Response, next: NextFunction) {
     try {
@@ -62,33 +61,24 @@ class AuthController {
 
       await sendEmail(mailOptions);
 
-      return DefaultResponse(
-        res,
-        200,
-        "REGISTRATION SUCCESSFULL"
-      );
+      return DefaultResponse(res, 200, "REGISTRATION SUCCESSFULL");
     } catch (err) {
       next(err);
     }
   }
 
-
-/**
- * Login User
- * @param req 
- * @param res 
- * @param next 
- * @returns 
- */
+  /**
+   * Login User
+   * @param req
+   * @param res
+   * @param next
+   * @returns
+   */
   async login(req: RequestExtended, res: Response, next: NextFunction) {
     try {
+      const { email, password, rememberMe } = req.body;
 
-      const { email, password, rememberMe, } = req.body;
-
-      const user: any = await authServices.login(
-        email.toLowerCase(),
-        password,
-      );
+      const user: any = await authServices.login(email.toLowerCase(), password);
 
       const {
         password: userPassword,
@@ -96,7 +86,6 @@ class AuthController {
         isVerified,
         ...finalUser
       } = user;
-
 
       return DefaultResponse(
         res,
@@ -109,14 +98,13 @@ class AuthController {
     }
   }
 
-
-/**
- * forget password
- * @param req 
- * @param res 
- * @param next 
- * @returns 
- */
+  /**
+   * forget password
+   * @param req
+   * @param res
+   * @param next
+   * @returns
+   */
   async forgotPassword(req: Request, res: Response, next: NextFunction) {
     try {
       checkValidation(req);
@@ -156,49 +144,41 @@ class AuthController {
     }
   }
 
-
-/**
- * change password
- * @param req 
- * @param res 
- * @param next 
- * @returns 
- */
+  /**
+   * change password
+   * @param req
+   * @param res
+   * @param next
+   * @returns
+   */
   async changePassword(req: Request, res: Response, next: NextFunction) {
     try {
-
       checkValidation(req);
       const { password } = req.body;
       const { token } = req.params;
-      console.log('2222222')
+      console.log("2222222");
       const user = await authServices.changePassword(token, password);
 
-      return DefaultResponse(
-        res,
-        200,
-        "PASSWORD CHANGED SUCCESSFULLY",
-        user
-      );
+      return DefaultResponse(res, 200, "PASSWORD CHANGED SUCCESSFULLY", user);
     } catch (err) {
       console.error(err);
       next(err);
     }
   }
 
-
   /**
    * Reset Password
-   * @param req 
-   * @param res 
-   * @param next 
-   * @returns 
+   * @param req
+   * @param res
+   * @param next
+   * @returns
    */
   async SetPassword(req: Request, res: Response, next: NextFunction) {
-    console.log('1111')
+    console.log("1111");
     try {
       const { password } = req.body;
       const { token } = req.params;
-      console.log('22222')
+      console.log("22222");
       const user = await authServices.setPassword(token, password);
 
       return DefaultResponse(res, 200, "PASSWORD RESETED SUCCESSFULLY", user);
@@ -207,14 +187,13 @@ class AuthController {
     }
   }
 
-
-/**
- * fetch profile
- * @param req 
- * @param res 
- * @param next 
- * @returns 
- */
+  /**
+   * fetch profile
+   * @param req
+   * @param res
+   * @param next
+   * @returns
+   */
   async fetchProfile(req: RequestExtended, res: Response, next: NextFunction) {
     try {
       const profile = await userRepository.getById(req.user.id);
@@ -239,6 +218,22 @@ class AuthController {
     }
   }
 
+  async getUserDetailsByEmail(req: Request, res: Response, next: NextFunction) {
+    try {
+      const email = req.query.email;
+
+      const user = await userRepository.getByEmail(email as string);
+
+      return DefaultResponse(
+        res,
+        200,
+        "User details fetched successfully",
+        user
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export default new AuthController();

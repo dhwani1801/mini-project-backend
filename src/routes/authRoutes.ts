@@ -1,11 +1,8 @@
 import express from 'express';
 import { authController } from '../controllers';
 import { forgotPasswordValidationRules } from '../helpers/validators';
-import { isAuthenticated } from '../middleware/authMiddleware';
 
 const router = express.Router();
-
-
 
 /**
  * register user
@@ -45,6 +42,9 @@ router.post(
 /**
  * fetch profile
  */
-router.get('/fetch-profile', isAuthenticated, authController.fetchProfile);
+router.get('/fetch-profile', authController.fetchProfile);
+
+
+router.get('/get-email',authController.getUserDetailsByEmail)
 
 export default router;

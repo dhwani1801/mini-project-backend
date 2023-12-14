@@ -1,4 +1,4 @@
-import { NextFunction, Response } from "express";
+import { NextFunction, Response, Request } from "express";
 import { DefaultResponse } from "../helpers/defaultResponseHelper";
 import { RequestExtended } from "../interfaces/global";
 import quickBookService from "../services";
@@ -6,15 +6,15 @@ import { AuthTokenInterface } from "../interfaces/quickBookInterface";
 import quickbookService from "../services/quickbookService";
 import { qbRepository } from "../repositories";
 import { CustomerObject } from "../interfaces";
+import { prisma } from "../client/prisma";
 
 class QuickbooksController {
-
   /**
    * get quickbook auth url
-   * @param req 
-   * @param res 
-   * @param next 
-   * @returns 
+   * @param req
+   * @param res
+   * @param next
+   * @returns
    */
   async getQuickbooksAuthUri(
     req: RequestExtended,
@@ -34,17 +34,18 @@ class QuickbooksController {
     }
   }
 
-
-/**
- * connect to quickbook
- * @param req 
- * @param res 
- * @param next 
- * @returns 
- */
-  async createIntegration(req: RequestExtended,
+  /**
+   * connect to quickbook
+   * @param req
+   * @param res
+   * @param next
+   * @returns
+   */
+  async createIntegration(
+    req: RequestExtended,
     res: Response,
-    next: NextFunction) {
+    next: NextFunction
+  ) {
     const url = String(req?.body?.url);
 
     const authToken: AuthTokenInterface =
@@ -69,17 +70,17 @@ class QuickbooksController {
     return DefaultResponse(
       res,
       200,
-      'CONNECTED SUCCESSFULLY',
+      "CONNECTED SUCCESSFULLY",
       finalCompanyDetails
     );
   }
 
   /**
    * get all qbo customers
-   * @param req 
-   * @param res 
-   * @param next 
-   * @returns 
+   * @param req
+   * @param res
+   * @param next
+   * @returns
    */
   async getAllQBOCustomers(
     req: RequestExtended,
@@ -89,7 +90,7 @@ class QuickbooksController {
     try {
       const companyId = req.body.companyId;
       const authResponse = await quickbookService.getAccessToken(companyId);
-      
+
       const customersList: any = await quickbookService.getCustomers(
         authResponse?.accessToken as string,
         authResponse?.tenantID as string,
@@ -99,7 +100,7 @@ class QuickbooksController {
       return DefaultResponse(
         res,
         200,
-        'CUSTOMER FETCHED SUCCESSFULLY',
+        "CUSTOMER FETCHED SUCCESSFULLY",
         customersList?.QueryResponse?.Customer
       );
     } catch (err) {
@@ -107,17 +108,18 @@ class QuickbooksController {
     }
   }
 
-
   /**
    * update customer
-   * @param req 
-   * @param res 
-   * @param next 
-   * @returns 
+   * @param req
+   * @param res
+   * @param next
+   * @returns
    */
-  async updateCustomer(req: RequestExtended,
+  async updateCustomer(
+    req: RequestExtended,
     res: Response,
-    next: NextFunction) {
+    next: NextFunction
+  ) {
     try {
       const companyId = req.params.companyId;
       const authResponse = await quickbookService.getAccessToken(companyId);
@@ -133,7 +135,7 @@ class QuickbooksController {
       return DefaultResponse(
         res,
         200,
-        'CUSTOMER UPDATED SUCCESSFULLY',
+        "CUSTOMER UPDATED SUCCESSFULLY",
         createdCustomer
       );
     } catch (err) {
@@ -141,22 +143,22 @@ class QuickbooksController {
     }
   }
 
-
   /**
    * create customer
-   * @param req 
-   * @param res 
-   * @param next 
-   * @returns 
+   * @param req
+   * @param res
+   * @param next
+   * @returns
    */
-  async createCustomer(req: RequestExtended,
+  async createCustomer(
+    req: RequestExtended,
     res: Response,
-    next: NextFunction) {
+    next: NextFunction
+  ) {
     try {
       const companyId = req.params.companyId;
       const authResponse = await quickbookService.getAccessToken(companyId);
       const customerData = req.body as CustomerObject;
-
       const createdCustomer = await quickbookService.createCustomer(
         authResponse?.accessToken as string,
         authResponse?.tenantID as string,
@@ -167,13 +169,53 @@ class QuickbooksController {
       return DefaultResponse(
         res,
         200,
-        'CUSTOMER CREATED SUCCESSFULLY',
+        "CUSTOMER CREATED SUCCESSFULLY",
         createdCustomer
       );
     } catch (err) {
       next(err);
     }
   }
-}
 
+  async getCustomerInfo(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    try {
+      console.log("inside webhook api");
+      const accessToken =
+        "eyJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwiYWxnIjoiZGlyIn0..u2QzrxfJ8InVgBjDvA-csw.AIXnFMenys4xjXLWxud-1agWMBZWm7lr-w9LK71QNr7UAts-NlZLi4TIqsLBCAvfQ-L8yLMB8JQXWh5F5YQRERb0Kliycv_VoFN9tUipcNxDxWaej0O_VZnUFvvCzW4QDwzwDfEfJjFzB-CpsensYzBHCFBwA9FUHJr24f8BzGVPidGkyURz3yq5FEwpcpWPCstC8OMv20cvqH2xCk5dCr167H6PO5BVNSh9ZaUrF2NvIe-NCuzkv8vc4SgPw1Aq5Im2bTj5KmWKcyTSver4BqC9LHfGirVzx4xckfyclL6yTQ7ufAEAfPsO1CJh4aLSf7n_AhKiS7wsdSSxzR18mJTMxsjueHDGCkXuJTk-qhkj2vAh7XrFmGAN6POAH-am0QLLvaHWAiI7A7FPc9wHHS7WrnZdivTk_4TRzxVXyDQVV04FuqVi1G8npVReJin08XVvBbqKFwKNGOro8pA3JDUnMqEywWFYdV2opAtdqcc9XOeHR4DyaPg821CBoiKFYgx8oYa1fQtT070fWWu5C0t-PLRbecvDqbYSpHiy4ey_NzsH3-j_Y4DDQCNbPfcN5flA3IWqHVSVpdb2CSjZBfrcIgmlLssSyZVf526Wd409P3NGBibfYFWfY5ZTfr7l-fBN883fF9N5-0oU6yCzDmPyzdOb9IoQBKWftmyg7drWU56XH9Bi5cUfFCOMQB-IQi50UboKWwz5vtSpe5OrwIKSzVmVvo1cVZgzoFbxK3NlntYO7u8FoDEtt2R5VVDu._xDzsIEyLFvZ9FlDJqBExA";
+      const realmId = "4620816365361451620";
+      const customerId =
+        req.body.eventNotifications[0].dataChangeEvent.entities[0].id;
+      const refreshToken = "AB11711188941hvxzVNmFI2Y67dQTRxVRRY9cJBOQCE7TET2FO";
+
+      if (!req.body || !req.body.eventNotifications) {
+        return res.status(400).send("Invalid webhook payload");
+      }
+
+      const customerInfo =
+        await quickBookService.quickBookService.getCustomerInfo(
+          accessToken,
+          realmId,
+          customerId,
+          refreshToken
+        );
+
+      const createdCustomer = await prisma.customer.create({
+        data: {
+          qboCustomerId: customerId,
+          customerId: customerInfo.PrimaryEmailAddr.Address,
+          givenName: customerInfo.DisplayName,
+          phone: customerInfo.PrimaryPhone.FreeFormNumber,
+          tenantID: realmId,
+        },
+      });
+      return createdCustomer;
+    } catch (err) {
+      next(err);
+    }
+  }
+}
 export default new QuickbooksController();
