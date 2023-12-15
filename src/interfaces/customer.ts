@@ -5,7 +5,7 @@ export default interface CustomerObject {
       Address: string;
     };
     PrimaryPhone: {
-      FreeFormNumber: string;
+      FreeFormNumber?: string;
     };
     CompanyName: string;
     BillAddr: {

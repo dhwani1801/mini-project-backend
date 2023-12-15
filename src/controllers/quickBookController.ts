@@ -64,7 +64,10 @@ class QuickbooksController {
       refreshToken: authToken.refresh_token,
       accessTokenUTCDate: new Date(),
     };
-
+    // if (data) {
+    //   const error = new Error("Connection is already established");
+    //   return error;
+    // }
     const finalCompanyDetails = await qbRepository.create(data);
 
     return DefaultResponse(
@@ -156,7 +159,7 @@ class QuickbooksController {
     next: NextFunction
   ) {
     try {
-      const companyId = req.params.companyId;
+      const companyId = 'e318069d-6c58-4ee7-9622-ac73875f2016';
       const authResponse = await quickbookService.getAccessToken(companyId);
       const customerData = req.body as CustomerObject;
       const createdCustomer = await quickbookService.createCustomer(
@@ -178,29 +181,27 @@ class QuickbooksController {
   }
 
   async getCustomerInfo(
-    req: Request,
+    req: RequestExtended,
     res: Response,
     next: NextFunction
   ): Promise<any> {
     try {
       console.log("inside webhook api");
-      const accessToken =
-        "eyJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwiYWxnIjoiZGlyIn0..u2QzrxfJ8InVgBjDvA-csw.AIXnFMenys4xjXLWxud-1agWMBZWm7lr-w9LK71QNr7UAts-NlZLi4TIqsLBCAvfQ-L8yLMB8JQXWh5F5YQRERb0Kliycv_VoFN9tUipcNxDxWaej0O_VZnUFvvCzW4QDwzwDfEfJjFzB-CpsensYzBHCFBwA9FUHJr24f8BzGVPidGkyURz3yq5FEwpcpWPCstC8OMv20cvqH2xCk5dCr167H6PO5BVNSh9ZaUrF2NvIe-NCuzkv8vc4SgPw1Aq5Im2bTj5KmWKcyTSver4BqC9LHfGirVzx4xckfyclL6yTQ7ufAEAfPsO1CJh4aLSf7n_AhKiS7wsdSSxzR18mJTMxsjueHDGCkXuJTk-qhkj2vAh7XrFmGAN6POAH-am0QLLvaHWAiI7A7FPc9wHHS7WrnZdivTk_4TRzxVXyDQVV04FuqVi1G8npVReJin08XVvBbqKFwKNGOro8pA3JDUnMqEywWFYdV2opAtdqcc9XOeHR4DyaPg821CBoiKFYgx8oYa1fQtT070fWWu5C0t-PLRbecvDqbYSpHiy4ey_NzsH3-j_Y4DDQCNbPfcN5flA3IWqHVSVpdb2CSjZBfrcIgmlLssSyZVf526Wd409P3NGBibfYFWfY5ZTfr7l-fBN883fF9N5-0oU6yCzDmPyzdOb9IoQBKWftmyg7drWU56XH9Bi5cUfFCOMQB-IQi50UboKWwz5vtSpe5OrwIKSzVmVvo1cVZgzoFbxK3NlntYO7u8FoDEtt2R5VVDu._xDzsIEyLFvZ9FlDJqBExA";
-      const realmId = "4620816365361451620";
+
       const customerId =
         req.body.eventNotifications[0].dataChangeEvent.entities[0].id;
-      const refreshToken = "AB11711188941hvxzVNmFI2Y67dQTRxVRRY9cJBOQCE7TET2FO";
-
+      const companyId = "dbb0d8aa-d282-4713-ba55-12d0e888e62b";
+      const authResponse = await quickbookService.getAccessToken(companyId);
       if (!req.body || !req.body.eventNotifications) {
         return res.status(400).send("Invalid webhook payload");
       }
-
+      const realmId = authResponse?.tenantID as string;
       const customerInfo =
         await quickBookService.quickBookService.getCustomerInfo(
-          accessToken,
-          realmId,
+          authResponse?.accessToken as string,
+          authResponse?.tenantID as string,
           customerId,
-          refreshToken
+          authResponse?.refreshToken as string
         );
 
       const createdCustomer = await prisma.customer.create({

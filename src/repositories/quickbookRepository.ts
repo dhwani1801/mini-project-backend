@@ -59,6 +59,37 @@ class QuickBookRepository {
             throw err;
         }
     }
+
+    async getAllActive(companyId: any) {
+        const Activeconnections: any = await prisma.connections.findMany({
+          where: {
+            isActiveConnection: true,
+            organizationId: companyId,
+          },
+          select: {
+            companyId: true,
+            companyName: true,
+            channelName: true,
+            tokenDetails: true,
+            id:true
+          }
+        });
+    
+       const ActiveconnectionsList= await Activeconnections.map((item:any) => {
+          if (item.channelName === 'Business Central') {
+            const tokenDetails = JSON.parse(item.tokenDetails);
+            const selectedEnvironment = tokenDetails.selectedEnvironment;
+            delete item.tokenDetails;
+            return { ...item, selectedEnvironment };
+          } else {
+            delete item.tokenDetails;
+            return item;
+          }
+        });
+    
+        return ActiveconnectionsList
+    
+      }
 }
 
 export default new QuickBookRepository();

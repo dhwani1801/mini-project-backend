@@ -243,7 +243,7 @@ class QuickBookServices {
               qboCustomerId: response.Id,
               customerId: customerObject.PrimaryEmailAddr.Address,
               givenName: customerObject.GivenName,
-              phone: customerObject.PrimaryPhone.FreeFormNumber,
+              phone: customerObject?.PrimaryPhone?.FreeFormNumber,
               tenantID: realmId,
             },
           });
