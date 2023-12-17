@@ -7,15 +7,9 @@ import quickbookService from "../services/quickbookService";
 import { qbRepository } from "../repositories";
 import { CustomerObject } from "../interfaces";
 import { prisma } from "../client/prisma";
+import quickbookRepository from "../repositories/quickbookRepository";
 
 class QuickbooksController {
-  /**
-   * get quickbook auth url
-   * @param req
-   * @param res
-   * @param next
-   * @returns
-   */
   async getQuickbooksAuthUri(
     req: RequestExtended,
     res: Response,
@@ -34,29 +28,21 @@ class QuickbooksController {
     }
   }
 
-  /**
-   * connect to quickbook
-   * @param req
-   * @param res
-   * @param next
-   * @returns
-   */
   async createIntegration(
     req: RequestExtended,
     res: Response,
     next: NextFunction
   ) {
     const url = String(req?.body?.url);
-
     const authToken: AuthTokenInterface =
       await quickbookService.createAuthToken(url);
-
+    console.log("authToken: ", authToken);
     const qboCompanyInfo = await quickbookService.getCompanyInfo(
       authToken.access_token,
       authToken.realmId,
       authToken.refresh_token
     );
-
+    console.log("qboCompanyInfo: ", qboCompanyInfo);
     const data = {
       tenantID: authToken.realmId,
       tenantName: qboCompanyInfo?.CompanyName,
@@ -64,10 +50,17 @@ class QuickbooksController {
       refreshToken: authToken.refresh_token,
       accessTokenUTCDate: new Date(),
     };
-    // if (data) {
-    //   const error = new Error("Connection is already established");
-    //   return error;
-    // }
+
+    const isAlreadyConnected = await quickbookRepository.getCompanyByTenantId(
+      authToken.realmId
+    );
+
+    if (isAlreadyConnected) {
+      const error = new Error("Company is already connected");
+      console.log("error: ", error);
+      return error;
+    }
+
     const finalCompanyDetails = await qbRepository.create(data);
 
     return DefaultResponse(
@@ -78,13 +71,7 @@ class QuickbooksController {
     );
   }
 
-  /**
-   * get all qbo customers
-   * @param req
-   * @param res
-   * @param next
-   * @returns
-   */
+
   async getAllQBOCustomers(
     req: RequestExtended,
     res: Response,
@@ -111,20 +98,14 @@ class QuickbooksController {
     }
   }
 
-  /**
-   * update customer
-   * @param req
-   * @param res
-   * @param next
-   * @returns
-   */
+
   async updateCustomer(
     req: RequestExtended,
     res: Response,
     next: NextFunction
   ) {
     try {
-      const companyId = req.params.companyId;
+      const companyId = 'b2e7f6b1-9ad7-4347-af82-eb0f539dc429';
       const authResponse = await quickbookService.getAccessToken(companyId);
       const customerData = req.body as CustomerObject;
 
@@ -146,20 +127,14 @@ class QuickbooksController {
     }
   }
 
-  /**
-   * create customer
-   * @param req
-   * @param res
-   * @param next
-   * @returns
-   */
+
   async createCustomer(
     req: RequestExtended,
     res: Response,
     next: NextFunction
   ) {
     try {
-      const companyId = 'e318069d-6c58-4ee7-9622-ac73875f2016';
+      const companyId = "b2e7f6b1-9ad7-4347-af82-eb0f539dc429 ";
       const authResponse = await quickbookService.getAccessToken(companyId);
       const customerData = req.body as CustomerObject;
       const createdCustomer = await quickbookService.createCustomer(

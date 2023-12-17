@@ -14,8 +14,6 @@ const authClient = new OAuthClient({
 });
 
 class QuickBookServices {
-  /**
-   * Get Quickbooks authentication URL */
   async getauthURL() {
     const authUri = authClient.authorizeUri({
       scope: [OAuthClient.scopes.Accounting],
@@ -42,13 +40,6 @@ class QuickBookServices {
     }
   }
 
-  /**
-   * get company information
-   * @param accessToken
-   * @param realmId
-   * @param refreshToken
-   * @returns
-   */
   async getCompanyInfo(
     accessToken: string,
     realmId: string,
@@ -77,13 +68,6 @@ class QuickBookServices {
     });
   }
 
-  /**
-   * get customers
-   * @param accessToken
-   * @param realmId
-   * @param refreshToken
-   * @returns
-   */
   async getCustomers(
     accessToken: string,
     realmId: string,
@@ -116,11 +100,6 @@ class QuickBookServices {
     });
   }
 
-  /**
-   * get access token
-   * @param companyId
-   * @returns
-   */
   async getAccessToken(companyId: any) {
     try {
       const companyDetails = await qbRepository.getDetails(companyId);
@@ -158,14 +137,6 @@ class QuickBookServices {
     }
   }
 
-  /**
-   * updates customer
-   * @param accessToken
-   * @param realmId
-   * @param refreshToken
-   * @param customerObject
-   * @returns
-   */
   async updateCustomer(
     accessToken: string,
     realmId: string,
@@ -206,14 +177,6 @@ class QuickBookServices {
     });
   }
 
-  /**
-   * creates customer
-   * @param accessToken
-   * @param realmId
-   * @param refreshToken
-   * @param customerObject
-   * @returns
-   */
   async createCustomer(
     accessToken: string,
     realmId: string,
@@ -284,8 +247,6 @@ class QuickBookServices {
   }
 
   async handleWebhook(req: any, res: any) {
-    console.log("inside webhook api");
-
     if (!req.body || !req.body.eventNotifications) {
       return res.status(400).send("Invalid webhook payload");
     }
@@ -296,7 +257,6 @@ class QuickBookServices {
     try {
       res.status(200).send("Webhook processed successfully");
     } catch (error) {
-      console.error("Error retrieving customer information:", error);
       res.status(500).send("Error processing webhook");
     }
   }

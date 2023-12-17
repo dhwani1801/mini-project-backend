@@ -11,13 +11,7 @@ import sendEmail from "../helpers/emailHelper";
 import { generateForgotPasswordToken } from "../helpers/tokenHelper";
 
 class AuthController {
-  /**
-   * registration api
-   * @param req
-   * @param res
-   * @param next
-   * @returns
-   */
+
   async register(req: Request, res: Response, next: NextFunction) {
     try {
       const { confirmPassword, ...data } = req.body;
@@ -67,13 +61,7 @@ class AuthController {
     }
   }
 
-  /**
-   * Login User
-   * @param req
-   * @param res
-   * @param next
-   * @returns
-   */
+
   async login(req: RequestExtended, res: Response, next: NextFunction) {
     try {
       const { email, password, rememberMe } = req.body;
@@ -98,13 +86,7 @@ class AuthController {
     }
   }
 
-  /**
-   * forget password
-   * @param req
-   * @param res
-   * @param next
-   * @returns
-   */
+
   async forgotPassword(req: Request, res: Response, next: NextFunction) {
     try {
       checkValidation(req);
@@ -123,7 +105,7 @@ class AuthController {
     }
   }
 
-  // Verify Forgot Password Token
+
   async verifyForgotPasswordToken(
     req: Request,
     res: Response,
@@ -144,13 +126,7 @@ class AuthController {
     }
   }
 
-  /**
-   * change password
-   * @param req
-   * @param res
-   * @param next
-   * @returns
-   */
+
   async changePassword(req: Request, res: Response, next: NextFunction) {
     try {
       checkValidation(req);
@@ -166,13 +142,6 @@ class AuthController {
     }
   }
 
-  /**
-   * Reset Password
-   * @param req
-   * @param res
-   * @param next
-   * @returns
-   */
   async SetPassword(req: Request, res: Response, next: NextFunction) {
     console.log("1111");
     try {
@@ -187,13 +156,6 @@ class AuthController {
     }
   }
 
-  /**
-   * fetch profile
-   * @param req
-   * @param res
-   * @param next
-   * @returns
-   */
   async fetchProfile(req: RequestExtended, res: Response, next: NextFunction) {
     try {
       const profile = await userRepository.getById(req.user.id);
