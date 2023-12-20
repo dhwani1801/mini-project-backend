@@ -11,19 +11,3 @@ export default interface UserInfo {
   updatedAt?: Date;
 }
 
-export interface UpdateUserInfo {
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
-  companyId: string;
-  roleId?: string;
-  userId: string;
-  status?: boolean;
-  isChangeStatus?: boolean;
-}
-
-export interface RequestUserInterface {
-  id: string;
-  email: string;
-  companyId: string;
-}

@@ -87,7 +87,6 @@ class QuickBookServices {
         refreshToken
       );
       qbo.findCustomers(
-        //  [{ field: 'Active', value: [true, false], operator: 'IN' }],
         [{ field: "fetchAll", value: true }],
         async function (err: any, response: any) {
           if (err) {
@@ -103,7 +102,7 @@ class QuickBookServices {
   async getAccessToken(companyId: any) {
     try {
       const companyDetails = await qbRepository.getDetails(companyId);
-      console.log("companyDetails: ", companyDetails);
+
       if (!companyDetails) {
         throw error(404, "Company not found");
       }
@@ -160,17 +159,6 @@ class QuickBookServices {
         if (err) {
           reject(err);
         } else {
-          //     const updatedCustomer =  prisma.customer.update({
-          //         where: { qboCustomerId: response.Id },
-          //         data: {
-          //             customerId: customerObject.PrimaryEmailAddr.Address,
-          //             givenName: customerObject.GivenName,
-          //             phone: customerObject.PrimaryPhone.FreeFormNumber,
-          //         },
-          //     });
-
-          //   resolve(updatedCustomer);
-          console.log(response);
           resolve(response);
         }
       });
@@ -250,10 +238,6 @@ class QuickBookServices {
     if (!req.body || !req.body.eventNotifications) {
       return res.status(400).send("Invalid webhook payload");
     }
-
-    const customerId =
-      req.body.eventNotifications[0].dataChangeEvent.entities[0].id;
-
     try {
       res.status(200).send("Webhook processed successfully");
     } catch (error) {

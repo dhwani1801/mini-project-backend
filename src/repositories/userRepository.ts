@@ -2,11 +2,6 @@ import { prisma } from "../client/prisma";
 import { UserInfo } from "../interfaces";
 
 class UserRepository {
-  /**
-   * register user
-   * @param data
-   * @returns
-   */
   async register(data: UserInfo) {
     try {
       const user = await prisma.user.create({
@@ -24,11 +19,6 @@ class UserRepository {
     }
   }
 
-  /**
-   * get by id
-   * @param id
-   * @returns
-   */
   async getById(id: string) {
     try {
       const user = await prisma.user.findMany({
@@ -55,11 +45,6 @@ class UserRepository {
     }
   }
 
-  /**
-   * get by email
-   * @param email
-   * @returns
-   */
   async getByEmail(email: string) {
     console.log("email: ", email);
     const user = await prisma.user.findUnique({
@@ -83,7 +68,6 @@ class UserRepository {
     return user;
   }
 
-  //  Create a new user
   async create(userData: UserInfo) {
     try {
       const user = await prisma.user.create({
@@ -95,7 +79,6 @@ class UserRepository {
     }
   }
 
-  // Update user
   async update(id: string, data: any) {
     try {
       const user = await prisma.user.update({

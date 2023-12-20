@@ -1,16 +1,6 @@
 import { Response } from "express";
 import { DefaultResponseInterface } from "../interfaces/global";
 
-/**
- * default response for every api
- * @param res
- * @param statusCode
- * @param message
- * @param data
- * @param total
- * @param page
- * @returns
- */
 export const DefaultResponse = (
   res: Response,
   statusCode: number,

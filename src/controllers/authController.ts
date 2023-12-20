@@ -64,7 +64,7 @@ class AuthController {
 
   async login(req: RequestExtended, res: Response, next: NextFunction) {
     try {
-      const { email, password, rememberMe } = req.body;
+      const { email, password } = req.body;
 
       const user: any = await authServices.login(email.toLowerCase(), password);
 
@@ -132,7 +132,7 @@ class AuthController {
       checkValidation(req);
       const { password } = req.body;
       const { token } = req.params;
-      console.log("2222222");
+
       const user = await authServices.changePassword(token, password);
 
       return DefaultResponse(res, 200, "PASSWORD CHANGED SUCCESSFULLY", user);
@@ -151,30 +151,6 @@ class AuthController {
       const user = await authServices.setPassword(token, password);
 
       return DefaultResponse(res, 200, "PASSWORD RESETED SUCCESSFULLY", user);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async fetchProfile(req: RequestExtended, res: Response, next: NextFunction) {
-    try {
-      const profile = await userRepository.getById(req.user.id);
-      const filteredProfile = {
-        id: profile.id,
-        email: profile.email,
-        firstName: profile.firstName,
-        lastName: profile.lastName,
-        phone: profile.phone,
-        createdAt: profile.createdAt,
-        updatedAt: profile.updatedAt,
-      };
-
-      return DefaultResponse(
-        res,
-        200,
-        "PROFILE FETCHED SUCCESSFULLY",
-        filteredProfile
-      );
     } catch (err) {
       next(err);
     }

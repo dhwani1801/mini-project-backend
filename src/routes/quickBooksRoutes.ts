@@ -7,7 +7,7 @@ router.get("/authurl", quickbooksController.getQuickbooksAuthUri);
 router.get("/employees", quickbooksController.getAllQBOCustomers);
 
 router.post("/callback", quickbooksController.createIntegration);
-router.get("empployees", quickbooksController.getAllQBOCustomers);
+router.get("customers", quickbooksController.getAllQBOCustomers);
 router.post("/customer/:companyId", quickbooksController.createCustomer);
 
 router.post("/update/:companyId", quickbooksController.updateCustomer);

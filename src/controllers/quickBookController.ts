@@ -36,13 +36,13 @@ class QuickbooksController {
     const url = String(req?.body?.url);
     const authToken: AuthTokenInterface =
       await quickbookService.createAuthToken(url);
-    console.log("authToken: ", authToken);
+
     const qboCompanyInfo = await quickbookService.getCompanyInfo(
       authToken.access_token,
       authToken.realmId,
       authToken.refresh_token
     );
-    console.log("qboCompanyInfo: ", qboCompanyInfo);
+
     const data = {
       tenantID: authToken.realmId,
       tenantName: qboCompanyInfo?.CompanyName,
@@ -71,7 +71,6 @@ class QuickbooksController {
     );
   }
 
-
   async getAllQBOCustomers(
     req: RequestExtended,
     res: Response,
@@ -98,14 +97,14 @@ class QuickbooksController {
     }
   }
 
-
   async updateCustomer(
     req: RequestExtended,
     res: Response,
     next: NextFunction
   ) {
     try {
-      const companyId = 'b2e7f6b1-9ad7-4347-af82-eb0f539dc429';
+      // const companyId = "b2e7f6b1-9ad7-4347-af82-eb0f539dc429";
+      const companyId = req.params.companyId;
       const authResponse = await quickbookService.getAccessToken(companyId);
       const customerData = req.body as CustomerObject;
 
@@ -127,14 +126,14 @@ class QuickbooksController {
     }
   }
 
-
   async createCustomer(
     req: RequestExtended,
     res: Response,
     next: NextFunction
   ) {
     try {
-      const companyId = "b2e7f6b1-9ad7-4347-af82-eb0f539dc429 ";
+      // const companyId = "e1fe9128-3db3-4461-b8e1-5acaa395d4f3";
+      const companyId = req.params.companyId;
       const authResponse = await quickbookService.getAccessToken(companyId);
       const customerData = req.body as CustomerObject;
       const createdCustomer = await quickbookService.createCustomer(
@@ -165,7 +164,7 @@ class QuickbooksController {
 
       const customerId =
         req.body.eventNotifications[0].dataChangeEvent.entities[0].id;
-      const companyId = "dbb0d8aa-d282-4713-ba55-12d0e888e62b";
+      const companyId = "e1fe9128-3db3-4461-b8e1-5acaa395d4f3";
       const authResponse = await quickbookService.getAccessToken(companyId);
       if (!req.body || !req.body.eventNotifications) {
         return res.status(400).send("Invalid webhook payload");

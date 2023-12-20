@@ -11,12 +11,7 @@ import { CustomError } from "../models/customError";
 import tokenRepository from "../repositories/tokenRepository";
 import userRepository from "../repositories/userRepository";
 class AuthServices {
-  /**
-   * Login
-   * @param email
-   * @param password
-   * @returns
-   */
+  
   async login(email: string, password: string) {
     const user = await userRepository.getByEmail(email);
     if (!user) {
@@ -44,10 +39,6 @@ class AuthServices {
     }
   }
 
-  /**
-   * forget password
-   * @param email
-   */
   async forgotPassword(email: string) {
     const user = await userRepository.getByEmail(email);
 
@@ -85,11 +76,6 @@ class AuthServices {
     await sendEmail(mailOptions);
   }
 
-  /**
-   * verify forgey password token
-   * @param token
-   * @returns
-   */
   async verifyForgotPassword(token: string) {
     if (!token) {
       const err = new CustomError(400, "Token missing");
@@ -118,12 +104,6 @@ class AuthServices {
     return true;
   }
 
-  /**
-   * change password
-   * @param token
-   * @param password
-   * @returns
-   */
   async changePassword(token: string, password: string) {
     if (!token) {
       const err = new CustomError(400, "Token missing");
@@ -143,11 +123,6 @@ class AuthServices {
       const err = new CustomError(404, "User not found");
       throw err;
     }
-
-    // if (user.forgotPasswordToken !== token) {
-    //   const err = new CustomError(401, "Reset token has expired");
-    //   throw err;
-    // }
 
     if (user?.password) {
       const encrypted = await comparePassword(password, user?.password);
@@ -171,12 +146,6 @@ class AuthServices {
     return updatedUser;
   }
 
-  /**
-   * set password
-   * @param token
-   * @param password
-   * @returns
-   */
   async setPassword(token: string, password: string) {
     if (!token) {
       const err = new CustomError(400, "Token missing");

@@ -18,13 +18,6 @@ function config(Env: any) {
         resetPasswordReactUrl: `${Env?.REACT_APP_BASE_URL}/reset-password`,
         verifyEmail: `${Env?.REACT_APP_BASE_URL}/login`,
         reactAppBaseUrl: Env?.REACT_APP_BASE_URL,
-		// databaseHost: Env?.DATABASE_HOST,
-		// databaseUser: Env?.DATABASE_USER,
-		// databasePassword: Env?.DATABASE_PASSWORD,
-		// databaseName: Env?.DATABASE_NAME,
-		// databasePort: Env?.DATABASE_PORT,
-		// databaseUrl: Env?.DATABASE_URL,
-		// forgotPasswordTokenSecretKey: Env?.FORGOT_PASSWORD_TOKEN_SECRET_KEY,
 	};
 }
 

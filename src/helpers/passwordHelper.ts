@@ -1,12 +1,10 @@
 import bcrypt from "bcrypt";
 
-// Encrypt Password
 export const hashPassword = async (plaintextPassword: string) => {
   const hash = await bcrypt.hash(plaintextPassword, 10);
   return hash;
 };
 
-// Compare password
 export const comparePassword = async (
   plaintextPassword: string,
   hash: string

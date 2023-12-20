@@ -44,17 +44,3 @@ model Customer {
   tenantID      String
 }
 
-model Connections {
-  id                 Int       @id @default(autoincrement())
-  organizationId     String?
-  channelType        String?
-  channelName        String?
-  companyName        String?
-  companyId          String?
-  tokenDetails       String?
-  isActiveConnection Boolean   @default(true)
-  createdDate        DateTime? @default(now())
-  modifiedDate       DateTime? @default(now())
-  createdBy          String?
-  modifiedBy         String?
-}

@@ -2,10 +2,7 @@
 const { validationResult } = require('express-validator');
 import { Request } from 'express';
 
-/**
- * check validation
- * @param req 
- */
+
 export const checkValidation = (req: Request) => {
 	const errors = validationResult(req);
 	if (!errors.isEmpty()) {
