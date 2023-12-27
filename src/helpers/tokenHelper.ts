@@ -13,11 +13,8 @@ export const generateForgotPasswordToken = (payload: any) => {
   return token;
 };
 
-
 export const verifyAccessToken = (accessToken: string) => {
   const verified = jwt.verify(accessToken, config.accessTokenSecretKey);
-
-  console.log("verified : ", verified);
   return verified;
 };
 

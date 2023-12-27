@@ -55,7 +55,7 @@ class AuthController {
 
       await sendEmail(mailOptions);
 
-      return DefaultResponse(res, 200, "REGISTRATION SUCCESSFULL");
+      return DefaultResponse(res, 200, "REGISTRATION_SUCCESSFULL");
     } catch (err) {
       next(err);
     }
@@ -98,7 +98,7 @@ class AuthController {
       return DefaultResponse(
         res,
         200,
-        "PASSWORD RESET LINK SHARED TO YOUR EMAIL ADDRESS"
+        "PASSWORD_RESET_LINK_SHARED_TO_YOUR_EMAIL_ADDRESS"
       );
     } catch (err) {
       next(err);
@@ -137,17 +137,14 @@ class AuthController {
 
       return DefaultResponse(res, 200, "PASSWORD CHANGED SUCCESSFULLY", user);
     } catch (err) {
-      console.error(err);
       next(err);
     }
   }
 
   async SetPassword(req: Request, res: Response, next: NextFunction) {
-    console.log("1111");
     try {
       const { password } = req.body;
       const { token } = req.params;
-      console.log("22222");
       const user = await authServices.setPassword(token, password);
 
       return DefaultResponse(res, 200, "PASSWORD RESETED SUCCESSFULLY", user);

@@ -42,5 +42,40 @@ model Customer {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   tenantID      String
+  invoices      Invoice[]
+  payments      Payment[]
 }
+
+model Invoice {
+  id              String     @id @default(uuid())
+  qboInvoiceId    String     @unique
+  detailType      String
+  amount          Float?
+  salesItemName   String
+  salesItemValue  String
+  tenantID      String
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [qboCustomerId])
+}
+
+model Payment {
+  id              String      @id @default(uuid())
+  totalAmt        Float
+  qboPaymentId    String      @unique
+  tenantID      String
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [qboCustomerId])
+  linkedTxn       LinkedTxn[]
+}
+
+model LinkedTxn {
+  id       String      @id @default(uuid())
+  txnId    String
+  txnType  String
+  tenantID      String
+  paymentId String
+  payment  Payment @relation(fields: [paymentId], references: [qboPaymentId])
+}
+
+
 

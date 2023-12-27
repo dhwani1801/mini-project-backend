@@ -8,9 +8,9 @@ router.get("/employees", quickbooksController.getAllQBOCustomers);
 
 router.post("/callback", quickbooksController.createIntegration);
 router.get("customers", quickbooksController.getAllQBOCustomers);
-router.post("/customer/:companyId", quickbooksController.createCustomer);
-
-router.post("/update/:companyId", quickbooksController.updateCustomer);
-
+//router.post("/customer/:companyId", quickbooksController.createCustomer);
+router.post("/payment/:companyId", quickbooksController.createPayment);
+router.post("/update/:companyId", quickbooksController.createOrUpdateCustomer);
+router.post('/invoice/:companyId' , quickbooksController.createInvoice);
 router.post("/webhook-endpoint", quickbooksController.getCustomerInfo);
 export default router;

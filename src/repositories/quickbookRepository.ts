@@ -24,7 +24,6 @@ class QuickBookRepository {
 
       return company;
     } catch (err) {
-      console.error(err);
       throw new Error("Failed to fetch company details");
     }
   }
@@ -39,7 +38,6 @@ class QuickBookRepository {
       });
       return updatedCompany;
     } catch (err) {
-      console.log("Err: ", err);
       throw err;
     }
   }

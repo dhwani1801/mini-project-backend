@@ -11,7 +11,6 @@ import { CustomError } from "../models/customError";
 import tokenRepository from "../repositories/tokenRepository";
 import userRepository from "../repositories/userRepository";
 class AuthServices {
-  
   async login(email: string, password: string) {
     const user = await userRepository.getByEmail(email);
     if (!user) {
@@ -52,20 +51,9 @@ class AuthServices {
       email: email,
     });
 
-    const forgotPasswordTokenExpiresAt: string = (
-      Date.now() + config.forgotPasswordUrlExpireTime
-    ).toString();
-
     await userRepository.update(user?.id, {
       forgotPasswordToken: forgotPasswordToken,
     });
-
-    const fullName =
-      user?.firstName || user?.lastName
-        ? user?.firstName + " " + user?.lastName
-        : "User";
-
-    const url = `${config?.resetPasswordReactUrl}?token=${forgotPasswordToken}&exp=${forgotPasswordTokenExpiresAt}`;
 
     const mailOptions = {
       from: config.smtpEmail,
