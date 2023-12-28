@@ -96,62 +96,6 @@ class QuickbooksController {
     }
   }
 
-  // async updateCustomer(
-  //   req: RequestExtended,
-  //   res: Response,
-  //   next: NextFunction
-  // ) {
-  //   try {
-  //     // const companyId = "b2e7f6b1-9ad7-4347-af82-eb0f539dc429";
-  //     const companyId = req.params.companyId;
-  //     const authResponse = await quickbookService.getAccessToken(companyId);
-  //     const customerData = req.body as CustomerObject;
-
-  //     const createdCustomer = await quickbookService.updateCustomer(
-  //       authResponse?.accessToken as string,
-  //       authResponse?.tenantID as string,
-  //       authResponse?.refreshToken as string,
-  //       customerData
-  //     );
-
-  //     return DefaultResponse(
-  //       res,
-  //       200,
-  //       "CUSTOMER UPDATED SUCCESSFULLY",
-  //       createdCustomer
-  //     );
-  //   } catch (err) {
-  //     next(err);
-  //   }
-  // }
-
-  // async createCustomer(
-  //   req: RequestExtended,
-  //   res: Response,
-  //   next: NextFunction
-  // ) {
-  //   try {
-  //     const companyId = req.params.companyId;
-  //     const authResponse = await quickbookService.getAccessToken(companyId);
-  //     const customerData = req.body as CustomerObject;
-  //     const createdCustomer = await quickbookService.createCustomer(
-  //       authResponse?.accessToken as string,
-  //       authResponse?.tenantID as string,
-  //       authResponse?.refreshToken as string,
-  //       customerData
-  //     );
-
-  //     return DefaultResponse(
-  //       res,
-  //       200,
-  //       "CUSTOMER CREATED SUCCESSFULLY",
-  //       createdCustomer
-  //     );
-  //   } catch (err) {
-  //     next(err);
-  //   }
-  // }
-
   async getCustomerInfo(
     req: RequestExtended,
     res: Response,
@@ -199,7 +143,7 @@ class QuickbooksController {
       const companyId = req.params.companyId;
       const authResponse = await quickbookService.getAccessToken(companyId);
       const customerData = req.body;
-      const result = await quickbookService.createAndUpdateCustomer(
+      const result = await quickbookService.createCustomer(
         authResponse?.accessToken as string,
         authResponse?.tenantID as string,
         authResponse?.refreshToken as string,

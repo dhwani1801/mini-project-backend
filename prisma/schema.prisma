@@ -61,8 +61,9 @@ model Invoice {
 model Payment {
   id              String      @id @default(uuid())
   totalAmt        Float
+  amount          Float       
   qboPaymentId    String      @unique
-  tenantID      String
+  tenantID        String
   customerId      String
   customer        Customer @relation(fields: [customerId], references: [qboCustomerId])
   linkedTxn       LinkedTxn[]

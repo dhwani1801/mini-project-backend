@@ -9,9 +9,9 @@ import { userRepository } from "../repositories";
 import config from "../../config";
 import sendEmail from "../helpers/emailHelper";
 import { generateForgotPasswordToken } from "../helpers/tokenHelper";
+import { SUCCESS_MESSAGES } from "../constants/messages";
 
 class AuthController {
-
   async register(req: Request, res: Response, next: NextFunction) {
     try {
       const { confirmPassword, ...data } = req.body;
@@ -55,12 +55,15 @@ class AuthController {
 
       await sendEmail(mailOptions);
 
-      return DefaultResponse(res, 200, "REGISTRATION_SUCCESSFULL");
+      return DefaultResponse(
+        res,
+        200,
+        SUCCESS_MESSAGES.REGISTRATION_SUCCESSFULL
+      );
     } catch (err) {
       next(err);
     }
   }
-
 
   async login(req: RequestExtended, res: Response, next: NextFunction) {
     try {
@@ -78,14 +81,13 @@ class AuthController {
       return DefaultResponse(
         res,
         200,
-        "User logged in successfully",
+        SUCCESS_MESSAGES.USER_LOGGED_IN_SUCCESSFULLY,
         JSON.stringify(finalUser)
       );
     } catch (err) {
       next(err);
     }
   }
-
 
   async forgotPassword(req: Request, res: Response, next: NextFunction) {
     try {
@@ -98,13 +100,12 @@ class AuthController {
       return DefaultResponse(
         res,
         200,
-        "PASSWORD_RESET_LINK_SHARED_TO_YOUR_EMAIL_ADDRESS"
+        SUCCESS_MESSAGES.PASSWORD_RESET_LINK_SHARED_TO_YOUR_EMAIL_ADDRESS
       );
     } catch (err) {
       next(err);
     }
   }
-
 
   async verifyForgotPasswordToken(
     req: Request,
@@ -119,13 +120,12 @@ class AuthController {
       return DefaultResponse(
         res,
         200,
-        "Reset Password Token verified successfully"
+        SUCCESS_MESSAGES.RESET_TOKEN_PASSWORD_VERIFIED_SUCCESSFULLY
       );
     } catch (err) {
       next(err);
     }
   }
-
 
   async changePassword(req: Request, res: Response, next: NextFunction) {
     try {
@@ -135,19 +135,29 @@ class AuthController {
 
       const user = await authServices.changePassword(token, password);
 
-      return DefaultResponse(res, 200, "PASSWORD CHANGED SUCCESSFULLY", user);
+      return DefaultResponse(
+        res,
+        200,
+        SUCCESS_MESSAGES.PASSWORD_CHANGED_SUCCESSFULLY,
+        user
+      );
     } catch (err) {
       next(err);
     }
   }
 
-  async SetPassword(req: Request, res: Response, next: NextFunction) {
+  async setPassword(req: Request, res: Response, next: NextFunction) {
     try {
       const { password } = req.body;
       const { token } = req.params;
       const user = await authServices.setPassword(token, password);
 
-      return DefaultResponse(res, 200, "PASSWORD RESETED SUCCESSFULLY", user);
+      return DefaultResponse(
+        res,
+        200,
+        SUCCESS_MESSAGES.PASSWORD_RESETED_SUCCESSFULLY,
+        user
+      );
     } catch (err) {
       next(err);
     }
@@ -162,7 +172,7 @@ class AuthController {
       return DefaultResponse(
         res,
         200,
-        "User details fetched successfully",
+        SUCCESS_MESSAGES.USER_DETAIL_FETCHED_SUCCESSFULLY,
         user
       );
     } catch (err) {

@@ -12,7 +12,7 @@ router.post(
   authController.forgotPassword
 );
 router.post("/change-password/:token", authController.changePassword);
-router.post("/setpassword/:token", authController.SetPassword);
+router.post("/setpassword/:token", authController.setPassword);
 router.get("/get-email", authController.getUserDetailsByEmail);
 
 export default router;

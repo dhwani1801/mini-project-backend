@@ -183,7 +183,7 @@ class QuickBookServices {
     }
   }
 
-  async createAndUpdateCustomer(
+  async createCustomer(
     accessToken: string,
     realmId: string,
     refreshToken: string,
@@ -191,18 +191,6 @@ class QuickBookServices {
   ): Promise<any> {
     const createCustomerPromise = new Promise(async (resolve) => {
       try {
-        // const qbo = new QuickBooks(
-        //   process.env?.QUICKBOOKS_CLIENT_ID,
-        //   process.env?.QUICKBOOKS_CLIENT_SECRET,
-        //   accessToken,
-        //   true,
-        //   realmId,
-        //   process.env?.QUICKBOOKS_ENVIRONMENT == "sandbox" ? true : false,
-        //   true,
-        //   null,
-        //   "2.0",
-        //   refreshToken
-        // );
         const qbo = this.createQuickBooksObject(
           accessToken,
           realmId,
@@ -290,7 +278,6 @@ class QuickBookServices {
         );
         qbo.createInvoice(invoiceObject, async (err: any, response: any) => {
           if (err) {
-            console.error("Error creating invoice in QuickBooks:", err);
             resolve({
               status: 500,
               message: "Error creating invoice in QuickBooks",
@@ -327,7 +314,6 @@ class QuickBookServices {
         });
       }
     });
-
     return createInvoicePromise;
   }
 
@@ -346,69 +332,92 @@ class QuickBookServices {
         );
 
         const invoiceId = paymentObject.Line[0]?.LinkedTxn[0]?.TxnId;
-        const invoice = await prisma.invoice.findUnique({
-          where: { qboInvoiceId: invoiceId },
-        });
 
-        if (!invoice || invoice.amount === null) {
-          resolve({
-            status: 404,
-            message: "Associated invoice not found or total amount is null",
-            error: null,
-          });
-          return;
-        }
-
-        const totalInvoiceAmount = invoice.amount;
-        console.log("totalInvoiceAmount: ", totalInvoiceAmount);
-
-        const paymentAmount = paymentObject.TotalAmt;
-        console.log("paymentAmount: ", paymentAmount);
-
-        if (paymentAmount > totalInvoiceAmount) {
-          resolve({
-            status: 400,
-            message:
-              "Payment amount cannot be greater than the total invoice amount",
-            error: null,
-          });
-          return;
-        }
-
-        paymentObject.TotalAmt = totalInvoiceAmount;
-
-        qbo.createPayment(paymentObject, async (err: any, response: any) => {
+        // Use the getInvoice method to retrieve invoice details from QuickBooks
+        qbo.getInvoice(invoiceId, async (err: any, invoiceObject: any) => {
           if (err) {
-            console.error("Error creating payment in QuickBooks:", err);
+            console.error("Error retrieving invoice from QuickBooks:", err);
             resolve({
               status: 500,
-              message: "Error creating payment in QuickBooks",
+              message: "Error retrieving invoice from QuickBooks",
               error: err,
             });
-          } else {
-            const createdPayment = await prisma.payment.create({
-              data: {
-                qboPaymentId: response.Id,
-                totalAmt: totalInvoiceAmount,
-                tenantID: realmId,
-                customerId: paymentObject.CustomerRef.value,
-                linkedTxn: {
-                  create: {
-                    txnId: paymentObject.Line[0]?.LinkedTxn[0]?.TxnId,
-                    txnType: paymentObject.Line[0]?.LinkedTxn[0]?.TxnType,
-                    tenantID: realmId,
+            return;
+          }
+
+          // Check if the invoice has been fully paid
+          if (invoiceObject.Balance <= 0) {
+            resolve({
+              status: 400,
+              message: "Invoice has already been fully paid",
+              error: null,
+            });
+            return;
+          }
+
+          const invoiceInDatabase = await prisma.invoice.findUnique({
+            where: { qboInvoiceId: invoiceId },
+          });
+
+          if (!invoiceInDatabase || invoiceInDatabase.amount === null) {
+            resolve({
+              status: 404,
+              message:
+                "Associated invoice not found in the database or total amount is null",
+              error: null,
+            });
+            return;
+          }
+
+          const totalInvoiceAmount = invoiceInDatabase.amount;
+          const paymentAmount = paymentObject.TotalAmt;
+
+          if (paymentAmount > totalInvoiceAmount) {
+            resolve({
+              status: 400,
+              message:
+                "Payment amount cannot be greater than the total invoice amount",
+              error: null,
+            });
+            return;
+          }
+
+          // Proceed with creating the payment
+          paymentObject.TotalAmt = totalInvoiceAmount;
+
+          qbo.createPayment(paymentObject, async (err: any, response: any) => {
+            if (err) {
+              console.error("Error creating payment in QuickBooks:", err);
+              resolve({
+                status: 500,
+                message: "Error creating payment in QuickBooks",
+                error: err,
+              });
+            } else {
+              const createdPayment = await prisma.payment.create({
+                data: {
+                  qboPaymentId: response.Id,
+                  totalAmt: totalInvoiceAmount,
+                  tenantID: realmId,
+                  customerId: paymentObject.CustomerRef.value,
+                  amount: paymentObject.Line[0]?.Amount,
+                  linkedTxn: {
+                    create: {
+                      txnId: paymentObject.Line[0]?.LinkedTxn[0]?.TxnId,
+                      txnType: paymentObject.Line[0]?.LinkedTxn[0]?.TxnType,
+                      tenantID: realmId,
+                    },
                   },
                 },
-              },
-            });
-            console.log("createdPayment: ", createdPayment);
-            resolve({
-              status: 200,
-              message: "PAYMENT_CREATED_SUCCESSFULLY",
-              id: paymentObject.Id,
-              createdPayment: createdPayment,
-            });
-          }
+              });
+              resolve({
+                status: 200,
+                message: "PAYMENT_CREATED_SUCCESSFULLY",
+                id: paymentObject.Id,
+                createdPayment: createdPayment,
+              });
+            }
+          });
         });
       } catch (error) {
         console.error("Unexpected error:", error);
@@ -422,89 +431,6 @@ class QuickBookServices {
 
     return createPaymentPromise;
   }
-
-  // async createPayment(
-  //   accessToken: string,
-  //   realmId: string,
-  //   refreshToken: string,
-  //   paymentObject: any
-  // ): Promise<any> {
-  //   const createPaymentPromise = new Promise(async (resolve) => {
-  //     try {
-  //       const qbo = this.createQuickBooksObject(
-  //         accessToken,
-  //         realmId,
-  //         refreshToken
-  //       );
-
-  //       // Fetch the associated invoice to get the total amount
-  //       const invoiceId = paymentObject.Line[0]?.LinkedTxn[0]?.TxnId;
-  //       const invoice = await prisma.invoice.findUnique({
-  //         where: { qboInvoiceId: invoiceId },
-  //       });
-
-  //       if (!invoice || invoice.amount === null) {
-  //         resolve({
-  //           status: 404,
-  //           message: "Associated invoice not found or total amount is null",
-  //           error: null,
-  //         });
-  //         return;
-  //       }
-
-  //       const totalInvoiceAmount = invoice.amount;
-  //       console.log("totalInvoiceAmount: ", totalInvoiceAmount);
-  //       const paymentAmount = paymentObject.TotalAmt;
-  //       console.log("paymentAmount: ", paymentAmount);
-
-  //       if (paymentAmount > totalInvoiceAmount) {
-  //         resolve({
-  //           status: 400,
-  //           message:
-  //             "Payment amount cannot be greater than the total invoice amount",
-  //           error: null,
-  //         });
-  //         return;
-  //       }
-
-  //       qbo.createPayment(paymentObject, async (err: any, response: any) => {
-  //         if (err) {
-  //           console.error("Error creating payment in QuickBooks:", err);
-  //           resolve({
-  //             status: 500,
-  //             message: "Error creating payment in QuickBooks",
-  //             error: err,
-  //           });
-  //         } else {
-  //           const createdPayment = await prisma.payment.create({
-  //             data: {
-  //               qboPaymentId: response.Id,
-  //               totalAmt: paymentAmount,
-  //               tenantID: realmId,
-  //               customerId: paymentObject.CustomerRef.value,
-  //             },
-  //           });
-  //           console.log("createdPayment: ", createdPayment);
-  //           resolve({
-  //             status: 200,
-  //             message: "PAYMENT_CREATED_SUCCESSFULLY",
-  //             id: paymentObject.Id,
-  //             createdPayment: createdPayment,
-  //           });
-  //         }
-  //       });
-  //     } catch (error) {
-  //       console.error("Unexpected error:", error);
-  //       resolve({
-  //         status: 500,
-  //         message: "Unexpected error",
-  //         error: error,
-  //       });
-  //     }
-  //   });
-
-  //   return createPaymentPromise;
-  // }
 }
 
 export default new QuickBookServices();
