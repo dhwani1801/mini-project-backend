@@ -4,7 +4,11 @@ import qbRepository from "../repositories/quickbookRepository";
 const OAuthClient = require("intuit-oauth");
 const QuickBooks = require("node-quickbooks");
 import moment from "moment-timezone";
-import { CustomerObject } from "../interfaces";
+import {
+  ERROR_MESSAGE,
+  SUCCESS_MESSAGES,
+  VALIDATION_MESSAGE,
+} from "../constants/messages";
 
 const authClient = new OAuthClient({
   clientId: process.env?.QUICKBOOKS_CLIENT_ID,
@@ -13,7 +17,34 @@ const authClient = new OAuthClient({
   redirectUri: process.env?.QUICKBOOKS_REDIRECT_URI,
 });
 
+enum LogStatus {
+  Started = "STARTED",
+  Error = "ERROR",
+  Success = "SUCCESS",
+  Paid = "PAID",
+}
+// const customerLog = await this.createQboLog(timeGoUniqueId, null, null, timeGoUniqueId, SyncRecordTypeEnum.CUSTOMER, SyncStatusEnum.PROCESSING, 'Pending', null);
 class QuickBookServices {
+  async logSync(
+    qboId: string,
+    recordType: string,
+    tenantID: string,
+    status: string,
+    message?: string,
+    id?: string
+  ) {
+    const logs = await qbRepository.createOrUpdateLog({
+      qboId,
+      recordType,
+      tenantID,
+      status,
+      message,
+      id,
+    });
+    console.log("logs: ", logs);
+    return logs;
+  }
+
   async getauthURL() {
     const authUri = authClient.authorizeUri({
       scope: [OAuthClient.scopes.Accounting],
@@ -87,7 +118,7 @@ class QuickBookServices {
     );
   }
 
-  async getCustomers(
+  async getCustomersFromQbo(
     accessToken: string,
     realmId: string,
     refreshToken: string
@@ -117,7 +148,7 @@ class QuickBookServices {
       const companyDetails = await qbRepository.getDetails(companyId);
 
       if (!companyDetails) {
-        throw error(404, "Company not found");
+        throw error(404, VALIDATION_MESSAGE.COMPANY_NOT_FOUND);
       }
 
       const accessTokenUTCDate = moment(companyDetails?.accessTokenUTCDate);
@@ -149,7 +180,7 @@ class QuickBookServices {
     }
   }
 
-  async getCustomerInfo(
+  async getCustomerInfoUsingWebhooks(
     accessToken: string,
     realmId: string,
     customerId: string,
@@ -172,31 +203,93 @@ class QuickBookServices {
     });
   }
 
-  async handleWebhook(req: any, res: any) {
-    if (!req.body || !req.body.eventNotifications) {
-      return res.status(400).send("Invalid webhook payload");
-    }
-    try {
-      res.status(200).send("Webhook processed successfully");
-    } catch (error) {
-      res.status(500).send("Error processing webhook");
-    }
-  }
-
   async createCustomer(
     accessToken: string,
     realmId: string,
     refreshToken: string,
     customerObject: any
   ): Promise<any> {
-    const createCustomerPromise = new Promise(async (resolve) => {
+    try {
+      const logs = await this.logSync(
+        "",
+        "Customer",
+        realmId,
+        LogStatus.Started,
+        "Creating customer process started"
+      );
+      console.log("logssss : ", logs);
+      const company = await qbRepository.getCompanyByTenantId(realmId);
+      if (!company) {
+        return {
+          status: 404,
+          message: VALIDATION_MESSAGE.COMPANY_NOT_FOUND,
+          document: null,
+        };
+      }
+
+      const tenantName = company.tenantName;
+      customerObject.CompanyName = tenantName;
+
+      const qbo = this.createQuickBooksObject(
+        accessToken,
+        realmId,
+        refreshToken
+      );
+
+      const customerQueryResponse = await this.findCustomerInQBO(
+        qbo,
+        customerObject,
+        realmId
+      );
+
+      if (customerQueryResponse.status === 200) {
+        return customerQueryResponse;
+      }
+
+      const createdCustomer = await this.createCustomerInQBO(
+        qbo,
+        customerObject,
+        realmId
+      );
+      //  console.log('createdCustomer: ', createdCustomer);
+      await this.logSync(
+        createdCustomer.id,
+        "Customer",
+        realmId,
+        LogStatus.Success,
+        "Creating customer process completed",
+        logs.id
+      );
+      return {
+        status: 200,
+        message: SUCCESS_MESSAGES.CUSTOMER_CREATED_SUCCESSFULLY,
+        id: createdCustomer.Id,
+        createdCustomer,
+      };
+    } catch (err) {
+      await this.logSync(
+        "",
+        "Customer",
+        realmId,
+        LogStatus.Started,
+        "Creating customer process started"
+        //  logs.id
+      );
+      return {
+        message: err,
+        document: null,
+      };
+    }
+  }
+
+  async findCustomerInQBO(
+    qbo: any,
+    customerObject: any,
+    realmId: string
+  ): Promise<any> {
+    return new Promise(async (resolve) => {
       try {
-        const qbo = this.createQuickBooksObject(
-          accessToken,
-          realmId,
-          refreshToken
-        );
-        await qbo.findCustomers(
+        qbo.findCustomers(
           [
             {
               field: "DisplayName",
@@ -214,53 +307,65 @@ class QuickBookServices {
             } else {
               if (JSON.stringify(customer.QueryResponse) !== "{}") {
                 resolve({
-                  status: 200,
-                  message: "CUSTOMER_EXISTS",
+                  message: SUCCESS_MESSAGES.CUSTOMER_EXISTS,
                   document: customer.QueryResponse.Customer[0].Id,
                 });
               } else {
-                await qbo.createCustomer(
-                  customerObject,
-                  async (err: any, customer: any) => {
-                    if (err) {
-                      resolve({
-                        status: 451,
-                        message: JSON.stringify(err),
-                        document: null,
-                      });
-                    } else {
-                      const createdCustomer = await prisma.customer.create({
-                        data: {
-                          qboCustomerId: customer.Id,
-                          customerId: customerObject.PrimaryEmailAddr.Address,
-                          givenName: customerObject.GivenName,
-                          phone: customerObject?.PrimaryPhone?.FreeFormNumber,
-                          tenantID: realmId,
-                        },
-                      });
-                      console.log("createdCustomer: ", createdCustomer);
-                      resolve({
-                        status: 200,
-                        message: "CUSTOMER_CREATED_SUCCESSFULLY",
-                        id: customer.Id,
-                        createdCustomer: createdCustomer,
-                      });
-                    }
-                  }
-                );
+                resolve({
+                  message: VALIDATION_MESSAGE.CUSTOMER_DOES_NOT_EXIST,
+                  document: null,
+                });
               }
             }
           }
         );
       } catch (err) {
         resolve({
-          status: 451,
           message: err,
           document: null,
         });
       }
     });
-    return createCustomerPromise;
+  }
+
+  async createCustomerInQBO(
+    qbo: any,
+    customerObject: any,
+    realmId: string
+  ): Promise<any> {
+    return new Promise(async (resolve) => {
+      try {
+        qbo.createCustomer(customerObject, async (err: any, customer: any) => {
+          if (err) {
+            resolve({
+              status: 451,
+              message: JSON.stringify(err),
+              document: null,
+            });
+          } else {
+            const createdCustomer = await prisma.customer.create({
+              data: {
+                qboCustomerId: customer.Id,
+                customerId: customerObject.PrimaryEmailAddr.Address,
+                givenName: customerObject.GivenName,
+                tenantID: realmId,
+                DisplayName: `${customerObject.GivenName}`,
+              },
+            });
+            resolve({
+              status: 200,
+              id: customer.Id,
+              createdCustomer,
+            });
+          }
+        });
+      } catch (err) {
+        resolve({
+          message: err,
+          document: null,
+        });
+      }
+    });
   }
 
   async createInvoice(
@@ -271,16 +376,43 @@ class QuickBookServices {
   ): Promise<any> {
     const createInvoicePromise = new Promise(async (resolve) => {
       try {
+        const logs = await this.logSync(
+          "",
+          "Invoice",
+          realmId,
+          LogStatus.Started,
+          "Creating invoice process started"
+        );
+        const customerExists = await qbRepository.checkCustomerExists(
+          invoiceObject.CustomerRef.value
+        );
+
+        if (!customerExists) {
+          resolve({
+            status: 400,
+            message: VALIDATION_MESSAGE.CUSTOMER_DOES_NOT_EXIST,
+          });
+          return;
+        }
+
         const qbo = this.createQuickBooksObject(
           accessToken,
           realmId,
           refreshToken
         );
+
         qbo.createInvoice(invoiceObject, async (err: any, response: any) => {
           if (err) {
+            await this.logSync(
+              "",
+              "Invoice",
+              realmId,
+              LogStatus.Error,
+              "Creating invoice process error",
+              logs.id
+            );
             resolve({
-              status: 500,
-              message: "Error creating invoice in QuickBooks",
+              message: ERROR_MESSAGE.ERROR_CREATING_INVOICE_FROM_QUICKBOOKS,
               error: err,
             });
           } else {
@@ -297,20 +429,31 @@ class QuickBookServices {
                 customerId: invoiceObject.CustomerRef.value,
               },
             });
-
+            await this.logSync(
+              response.Id,
+              "Invoice",
+              realmId,
+              LogStatus.Success,
+              "Creating invoice process completed",
+              logs.id
+            );
             resolve({
               status: 200,
-              message: "INVOICE_CREATED_SUCCESSFULLY",
+              message: SUCCESS_MESSAGES.INVOICE_CREATED_SUCCESSFULLY,
               createdInvoice: createdInvoice,
             });
           }
         });
-      } catch (error) {
-        console.error("Unexpected error:", error);
+      } catch (error: any) {
+        await this.logSync(
+          realmId,
+          "invoice",
+          realmId,
+          LogStatus.Error,
+          error.message
+        );
         resolve({
-          status: 500,
-          message: "Unexpected error",
-          error: error,
+          error: error.message,
         });
       }
     });
@@ -330,26 +473,43 @@ class QuickBookServices {
           realmId,
           refreshToken
         );
+        const customerExists = await qbRepository.checkCustomerExists(
+          paymentObject.CustomerRef.value
+        );
 
+        if (!customerExists) {
+          resolve({
+            status: 400,
+            message: "Customer_does_not_exist",
+          });
+          return;
+        }
         const invoiceId = paymentObject.Line[0]?.LinkedTxn[0]?.TxnId;
 
-        // Use the getInvoice method to retrieve invoice details from QuickBooks
         qbo.getInvoice(invoiceId, async (err: any, invoiceObject: any) => {
           if (err) {
-            console.error("Error retrieving invoice from QuickBooks:", err);
             resolve({
-              status: 500,
-              message: "Error retrieving invoice from QuickBooks",
-              error: err,
+              message: "Invoice not found in quickbook",
+              error: err.message,
             });
             return;
           }
 
-          // Check if the invoice has been fully paid
+          const invoiceCustomerId = invoiceObject.CustomerRef.value;
+
+          if (paymentObject.CustomerRef.value !== invoiceCustomerId) {
+            resolve({
+              status: 400,
+              message: "Invoice does not belong to the specified customer",
+              error: null,
+            });
+            return;
+          }
+
           if (invoiceObject.Balance <= 0) {
             resolve({
               status: 400,
-              message: "Invoice has already been fully paid",
+              message: "Invoice_has_already_been_fully_paid",
               error: null,
             });
             return;
@@ -362,32 +522,45 @@ class QuickBookServices {
           if (!invoiceInDatabase || invoiceInDatabase.amount === null) {
             resolve({
               status: 404,
-              message:
-                "Associated invoice not found in the database or total amount is null",
+              message: "Associated_invoice_not_found_in_the_database",
               error: null,
             });
             return;
           }
 
           const totalInvoiceAmount = invoiceInDatabase.amount;
-          const paymentAmount = paymentObject.TotalAmt;
+          const paymentAmount = paymentObject.Line[0]?.Amount;
 
           if (paymentAmount > totalInvoiceAmount) {
             resolve({
               status: 400,
               message:
-                "Payment amount cannot be greater than the total invoice amount",
+                "Payment_amount_cannot_be_greater_than_the_total_invoice_amount",
               error: null,
             });
             return;
           }
 
-          // Proceed with creating the payment
-          paymentObject.TotalAmt = totalInvoiceAmount;
+          if (paymentAmount > invoiceObject.Balance) {
+            resolve({
+              status: 400,
+              message:
+                "Payment_amount_cannot_be_greater_than_the_total_invoice_balance",
+              error: null,
+            });
+            return;
+          }
 
+          paymentObject.TotalAmt = totalInvoiceAmount;
           qbo.createPayment(paymentObject, async (err: any, response: any) => {
             if (err) {
-              console.error("Error creating payment in QuickBooks:", err);
+              await this.logSync(
+                realmId,
+                "payment",
+                realmId,
+                LogStatus.Error,
+                err.message
+              );
               resolve({
                 status: 500,
                 message: "Error creating payment in QuickBooks",
@@ -400,16 +573,19 @@ class QuickBookServices {
                   totalAmt: totalInvoiceAmount,
                   tenantID: realmId,
                   customerId: paymentObject.CustomerRef.value,
-                  amount: paymentObject.Line[0]?.Amount,
-                  linkedTxn: {
-                    create: {
-                      txnId: paymentObject.Line[0]?.LinkedTxn[0]?.TxnId,
-                      txnType: paymentObject.Line[0]?.LinkedTxn[0]?.TxnType,
-                      tenantID: realmId,
-                    },
-                  },
+                  amount: parseFloat(paymentObject.Line[0]?.Amount),
+                  linkedTxnId: paymentObject.Line[0]?.LinkedTxn[0]?.TxnId,
+                  linkedTxnType: paymentObject.Line[0]?.LinkedTxn[0]?.TxnType,
                 },
               });
+
+              await this.logSync(
+                response.Id,
+                "payment",
+                realmId,
+                LogStatus.Success
+              );
+
               resolve({
                 status: 200,
                 message: "PAYMENT_CREATED_SUCCESSFULLY",
@@ -419,8 +595,7 @@ class QuickBookServices {
             }
           });
         });
-      } catch (error) {
-        console.error("Unexpected error:", error);
+      } catch (error: any) {
         resolve({
           status: 500,
           message: "Unexpected error",
@@ -430,6 +605,122 @@ class QuickBookServices {
     });
 
     return createPaymentPromise;
+  }
+
+  async getCustomersList(
+    realmId: string,
+    filter: any,
+    page: number,
+    pageSize: number
+  ): Promise<any> {
+    const { displayName, givenName, customerId } = filter;
+
+    const customers = await prisma.customer.findMany({
+      where: {
+        tenantID: realmId,
+        DisplayName: { contains: displayName },
+        givenName: { contains: givenName },
+        customerId: { contains: customerId },
+      },
+      take: pageSize,
+      skip: (page - 1) * pageSize,
+    });
+
+    const totalCustomers = await prisma.customer.count({
+      where: {
+        tenantID: realmId,
+        DisplayName: { contains: displayName },
+        givenName: { contains: givenName },
+        customerId: { contains: customerId },
+      },
+    });
+
+    return {
+      data: customers,
+      total: totalCustomers,
+      page: page,
+      pageSize: pageSize,
+    };
+  }
+
+  async getInvoicesList(
+    realmId: string,
+    filter: any,
+    page: number,
+    pageSize: number
+  ): Promise<any> {
+    const { amount, salesItemName, salesItemValue, customerId } = filter;
+
+    const invoices = await prisma.invoice.findMany({
+      where: {
+        tenantID: realmId,
+        amount: { equals: amount },
+        salesItemName: { contains: salesItemName },
+        salesItemValue: { contains: salesItemValue },
+        customerId: { contains: customerId },
+      },
+      take: pageSize,
+      skip: (page - 1) * pageSize,
+      include: {
+        customer: true,
+      },
+    });
+
+    const totalInvoices = await prisma.invoice.count({
+      where: {
+        tenantID: realmId,
+        amount: { equals: amount },
+        salesItemName: { contains: salesItemName },
+        salesItemValue: { contains: salesItemValue },
+        customerId: { contains: customerId },
+      },
+    });
+
+    return {
+      data: invoices,
+      total: totalInvoices,
+      page: page,
+      pageSize: pageSize,
+    };
+  }
+
+  async getPaymentList(
+    realmId: string,
+    filter: any,
+    page: number,
+    pageSize: number
+  ): Promise<any> {
+    const { amount, linkedTxnId: invoiceId, customerId } = filter;
+
+    const payments = await prisma.payment.findMany({
+      where: {
+        tenantID: realmId,
+        amount: { equals: amount },
+        linkedTxnId: { contains: invoiceId },
+        customerId: { contains: customerId },
+      },
+      take: pageSize,
+      skip: (page - 1) * pageSize,
+      include: {
+        customer: true,
+      },
+    });
+
+    const totalPayments = await prisma.payment.count({
+      where: {
+        tenantID: realmId,
+        amount: { equals: amount },
+        linkedTxnId: { contains: invoiceId },
+        customerId: { contains: customerId },
+      },
+    });
+
+    return {
+      data: payments,
+      total: totalPayments,
+      page: page,
+      pageSize: pageSize,
+    };
   }
 }
 

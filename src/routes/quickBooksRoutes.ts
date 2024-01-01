@@ -4,13 +4,22 @@ const router = express.Router();
 
 router.get("/authurl", quickbooksController.getQuickbooksAuthUri);
 
-router.get("/employees", quickbooksController.getAllQBOCustomers);
+router.get("/customerList", quickbooksController.getAllQBOCustomers);
 
 router.post("/callback", quickbooksController.createIntegration);
-router.get("customers", quickbooksController.getAllQBOCustomers);
-//router.post("/customer/:companyId", quickbooksController.createCustomer);
+
 router.post("/payment/:companyId", quickbooksController.createPayment);
-router.post("/update/:companyId", quickbooksController.createOrUpdateCustomer);
-router.post('/invoice/:companyId' , quickbooksController.createInvoice);
-router.post("/webhook-endpoint", quickbooksController.getCustomerInfo);
+
+router.post("/createCustomer/:companyId", quickbooksController.createCustomer);
+
+router.post("/invoice/:companyId", quickbooksController.createInvoice);
+
+//router.post("/webhook-endpoint", quickbooksController.getCustomerInfoUsingWebhook);
+
+router.get("/getCustomers/:companyId", quickbooksController.getCustomersList);
+
+router.get("/getInvoices/:companyId", quickbooksController.getInvoicesList);
+
+router.get("/getPayments/:companyId", quickbooksController.getPaymentsList);
+
 export default router;

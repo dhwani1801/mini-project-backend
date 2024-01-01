@@ -5,9 +5,9 @@ import quickBookService from "../services";
 import { AuthTokenInterface } from "../interfaces/quickBookInterface";
 import quickbookService from "../services/quickbookService";
 import { qbRepository } from "../repositories";
-import { CustomerObject } from "../interfaces";
 import { prisma } from "../client/prisma";
 import quickbookRepository from "../repositories/quickbookRepository";
+import { VALIDATION_MESSAGE, SUCCESS_MESSAGES } from "../constants/messages";
 
 class QuickbooksController {
   async getQuickbooksAuthUri(
@@ -20,7 +20,7 @@ class QuickbooksController {
       return DefaultResponse(
         res,
         200,
-        "AUTH_URL_RETRIVED_SUCCESSFULLY",
+        SUCCESS_MESSAGES.AUTH_URL_RETRIVED_SUCCESSFULLY,
         authURL
       );
     } catch (err) {
@@ -56,7 +56,7 @@ class QuickbooksController {
     );
 
     if (isAlreadyConnected) {
-      const error = new Error("Company_is_already_connected");
+      const error = new Error(VALIDATION_MESSAGE.COMPANY_IS_ALREADY_CONNECTED);
       return error;
     }
 
@@ -65,7 +65,7 @@ class QuickbooksController {
     return DefaultResponse(
       res,
       200,
-      "CONNECTED_SUCCESSFULLY",
+      SUCCESS_MESSAGES.CONNECTED_SUCCESSFULLY,
       finalCompanyDetails
     );
   }
@@ -79,7 +79,7 @@ class QuickbooksController {
       const companyId = req.body.companyId;
       const authResponse = await quickbookService.getAccessToken(companyId);
 
-      const customersList: any = await quickbookService.getCustomers(
+      const customersList: any = await quickbookService.getCustomersFromQbo(
         authResponse?.accessToken as string,
         authResponse?.tenantID as string,
         authResponse?.refreshToken as string
@@ -88,7 +88,7 @@ class QuickbooksController {
       return DefaultResponse(
         res,
         200,
-        "CUSTOMER_FETCHED_SUCCESSFULLY",
+        SUCCESS_MESSAGES.CUSTOMER_FETCHED_SUCCESSFULLY,
         customersList?.QueryResponse?.Customer
       );
     } catch (err) {
@@ -96,45 +96,47 @@ class QuickbooksController {
     }
   }
 
-  async getCustomerInfo(
-    req: RequestExtended,
-    res: Response,
-    next: NextFunction
-  ): Promise<any> {
-    try {
-      console.log("realmeid : ", req.body.eventNotifications[0].realmId);
-      const customerId =
-        req.body.eventNotifications[0].dataChangeEvent.entities[0].id;
-      const companyId = "e1fe9128-3db3-4461-b8e1-5acaa395d4f3";
-      const authResponse = await quickbookService.getAccessToken(companyId);
-      if (!req.body || !req.body.eventNotifications) {
-        return res.status(400).send("Invalid webhook payload");
-      }
-      const realmId = authResponse?.tenantID as string;
-      const customerInfo =
-        await quickBookService.quickBookService.getCustomerInfo(
-          authResponse?.accessToken as string,
-          authResponse?.tenantID as string,
-          customerId,
-          authResponse?.refreshToken as string
-        );
+  // async getCustomerInfoUsingWebhook(
+  //   req: RequestExtended,
+  //   res: Response,
+  //   next: NextFunction
+  // ): Promise<any> {
+  //   try {
+  //     const company = await quickbookRepository.getCompanyByTenantId(
+  //       req.body.eventNotifications[0].realmId
+  //     );
 
-      const createdCustomer = await prisma.customer.create({
-        data: {
-          qboCustomerId: customerId,
-          customerId: customerInfo.PrimaryEmailAddr.Address,
-          givenName: customerInfo.DisplayName,
-          phone: customerInfo.PrimaryPhone.FreeFormNumber,
-          tenantID: realmId,
-        },
-      });
-      return createdCustomer;
-    } catch (err) {
-      next(err);
-    }
-  }
+  //     const customerId =
+  //       req.body.eventNotifications[0].dataChangeEvent.entities[0].id;
+  //     const companyId = company?.id;
+  //     const authResponse = await quickbookService.getAccessToken(companyId);
 
-  async createOrUpdateCustomer(
+  //     const realmId = authResponse?.tenantID as string;
+  //     const customerInfo =
+  //       await quickBookService.quickBookService.getCustomerInfoUsingWebhooks(
+  //         authResponse?.accessToken as string,
+  //         authResponse?.tenantID as string,
+  //         customerId,
+  //         authResponse?.refreshToken as string
+  //       );
+
+  //     const createdCustomer = await prisma.customer.create({
+  //       data: {
+  //         qboCustomerId: customerId,
+  //         customerId: customerInfo.PrimaryEmailAddr.Address,
+  //         givenName: customerInfo.DisplayName,
+  //         phone: customerInfo.PrimaryPhone.FreeFormNumber,
+  //         tenantID: realmId,
+  //         DisplayName: customerInfo.DisplayName,
+  //       },
+  //     });
+  //     return createdCustomer;
+  //   } catch (err) {
+  //     next(err);
+  //   }
+  // }
+
+  async createCustomer(
     req: RequestExtended,
     res: Response,
     next: NextFunction
@@ -149,8 +151,9 @@ class QuickbooksController {
         authResponse?.refreshToken as string,
         customerData
       );
-
-      return DefaultResponse(res, 200, result);
+      return res.status(result.status).json({
+        result: result,
+      });
     } catch (err) {
       next(err);
     }
@@ -168,8 +171,9 @@ class QuickbooksController {
         authResponse?.refreshToken as string,
         invoiceObject
       );
-
-      return DefaultResponse(res, 200, "INVOICE_CREATED_SUCCESSFULLY", result);
+      return res.status(result.status).json({
+        result: result,
+      });
     } catch (err) {
       next(err);
     }
@@ -186,11 +190,103 @@ class QuickbooksController {
         authResponse?.refreshToken as string,
         paymentObject
       );
-
-      return DefaultResponse(res, 200, "Payment_CREATED_SUCCESSFULLY", result);
+      return res.json({
+        result: result,
+      });
     } catch (err) {
       next(err);
     }
   }
+
+  async getCustomersList(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const realmId = req.params.realmId;
+      const filter = req.query;
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 10;
+
+      const result = await quickBookService.quickBookService.getCustomersList(
+        realmId,
+        filter,
+        page,
+        pageSize
+      );
+
+      res.status(200).json({
+        message: SUCCESS_MESSAGES.CUSTOMER_RETRIVED_SUCCESSFULLY,
+        data: result.data,
+        total: result.total,
+        page: result.page,
+        pageSize: result.pageSize,
+      });
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  async getInvoicesList(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const realmId = req.params.realmId;
+      const filter = req.query;
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 10;
+
+      const result = await quickBookService.quickBookService.getInvoicesList(
+        realmId,
+        filter,
+        page,
+        pageSize
+      );
+
+      res.status(200).json({
+        message: SUCCESS_MESSAGES.INVOICE_RETRVIED_SUCCESSFULLY,
+        data: result.data,
+        total: result.total,
+        page: result.page,
+        pageSize: result.pageSize,
+      });
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  async getPaymentsList(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const realmId = req.params.realmId;
+      const filter = req.query;
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 10;
+
+      const result = await quickBookService.quickBookService.getPaymentList(
+        realmId,
+        filter,
+        page,
+        pageSize
+      );
+
+      res.status(200).json({
+        message: SUCCESS_MESSAGES.PAYMENT_RETRIVED_SUCCESSFULLY,
+        data: result.data,
+        total: result.total,
+        page: result.page,
+        pageSize: result.pageSize,
+      });
+    } catch (error: any) {
+      next(error);
+    }
+  }
 }
+
 export default new QuickbooksController();

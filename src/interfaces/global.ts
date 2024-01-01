@@ -8,7 +8,7 @@ export interface RequestExtended extends Request {
 
 export interface DefaultResponseInterface {
   message: string;
-  statusCode: number;
+  statusCode?: number;
   data: any;
   total?: number;
   page?: number;

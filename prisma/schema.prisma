@@ -39,6 +39,7 @@ model Customer {
   customerId    String
   givenName     String
   phone         String?
+  DisplayName   String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   tenantID      String
@@ -53,9 +54,12 @@ model Invoice {
   amount          Float?
   salesItemName   String
   salesItemValue  String
-  tenantID      String
+  tenantID        String
   customerId      String
-  customer        Customer @relation(fields: [customerId], references: [qboCustomerId])
+  customer      Customer @relation(fields: [customerId], references: [qboCustomerId])
+  payments      Payment[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Payment {
@@ -65,17 +69,23 @@ model Payment {
   qboPaymentId    String      @unique
   tenantID        String
   customerId      String
-  customer        Customer @relation(fields: [customerId], references: [qboCustomerId])
-  linkedTxn       LinkedTxn[]
+  linkedTxnId     String      
+  linkedTxnType   String      
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  customer        Customer    @relation(fields: [customerId], references: [qboCustomerId])
+  invoice         Invoice     @relation(fields: [linkedTxnId], references: [qboInvoiceId])
 }
 
-model LinkedTxn {
-  id       String      @id @default(uuid())
-  txnId    String
-  txnType  String
-  tenantID      String
-  paymentId String
-  payment  Payment @relation(fields: [paymentId], references: [qboPaymentId])
+model syncLogs {
+  id             String      @id @default(uuid())
+  qboId          String?      @unique
+  recordType     String?
+  tenantID       String?   
+  status         String?
+  message        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 
