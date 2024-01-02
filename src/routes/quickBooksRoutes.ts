@@ -14,12 +14,17 @@ router.post("/createCustomer/:companyId", quickbooksController.createCustomer);
 
 router.post("/invoice/:companyId", quickbooksController.createInvoice);
 
-//router.post("/webhook-endpoint", quickbooksController.getCustomerInfoUsingWebhook);
+router.post(
+  "/webhook-endpoint",
+  quickbooksController.getCustomerInfoUsingWebhook
+);
 
 router.get("/getCustomers/:companyId", quickbooksController.getCustomersList);
 
 router.get("/getInvoices/:companyId", quickbooksController.getInvoicesList);
 
 router.get("/getPayments/:companyId", quickbooksController.getPaymentsList);
+
+router.get("/getSyncLogs/:companyId", quickbooksController.getSyncLogsList);
 
 export default router;

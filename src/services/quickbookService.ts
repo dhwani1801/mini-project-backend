@@ -9,6 +9,7 @@ import {
   SUCCESS_MESSAGES,
   VALIDATION_MESSAGE,
 } from "../constants/messages";
+import { RecordType, LogStatus } from "../enum/enum";
 
 const authClient = new OAuthClient({
   clientId: process.env?.QUICKBOOKS_CLIENT_ID,
@@ -17,13 +18,6 @@ const authClient = new OAuthClient({
   redirectUri: process.env?.QUICKBOOKS_REDIRECT_URI,
 });
 
-enum LogStatus {
-  Started = "STARTED",
-  Error = "ERROR",
-  Success = "SUCCESS",
-  Paid = "PAID",
-}
-// const customerLog = await this.createQboLog(timeGoUniqueId, null, null, timeGoUniqueId, SyncRecordTypeEnum.CUSTOMER, SyncStatusEnum.PROCESSING, 'Pending', null);
 class QuickBookServices {
   async logSync(
     qboId: string,
@@ -41,7 +35,6 @@ class QuickBookServices {
       message,
       id,
     });
-    console.log("logs: ", logs);
     return logs;
   }
 
@@ -210,14 +203,6 @@ class QuickBookServices {
     customerObject: any
   ): Promise<any> {
     try {
-      const logs = await this.logSync(
-        "",
-        "Customer",
-        realmId,
-        LogStatus.Started,
-        "Creating customer process started"
-      );
-      console.log("logssss : ", logs);
       const company = await qbRepository.getCompanyByTenantId(realmId);
       if (!company) {
         return {
@@ -251,15 +236,7 @@ class QuickBookServices {
         customerObject,
         realmId
       );
-      //  console.log('createdCustomer: ', createdCustomer);
-      await this.logSync(
-        createdCustomer.id,
-        "Customer",
-        realmId,
-        LogStatus.Success,
-        "Creating customer process completed",
-        logs.id
-      );
+
       return {
         status: 200,
         message: SUCCESS_MESSAGES.CUSTOMER_CREATED_SUCCESSFULLY,
@@ -267,14 +244,6 @@ class QuickBookServices {
         createdCustomer,
       };
     } catch (err) {
-      await this.logSync(
-        "",
-        "Customer",
-        realmId,
-        LogStatus.Started,
-        "Creating customer process started"
-        //  logs.id
-      );
       return {
         message: err,
         document: null,
@@ -335,8 +304,23 @@ class QuickBookServices {
   ): Promise<any> {
     return new Promise(async (resolve) => {
       try {
+        const logs = await this.logSync(
+          "",
+          RecordType.Customer,
+          realmId,
+          LogStatus.Started,
+          "Creating customer process started"
+        );
         qbo.createCustomer(customerObject, async (err: any, customer: any) => {
           if (err) {
+            await this.logSync(
+              "",
+              RecordType.Customer,
+              realmId,
+              LogStatus.Success,
+              "Creating customer process error",
+              logs.id
+            );
             resolve({
               status: 451,
               message: JSON.stringify(err),
@@ -352,6 +336,14 @@ class QuickBookServices {
                 DisplayName: `${customerObject.GivenName}`,
               },
             });
+            await this.logSync(
+              customer.id,
+              RecordType.Customer,
+              realmId,
+              LogStatus.Success,
+              "Creating customer process completed",
+              logs.id
+            );
             resolve({
               status: 200,
               id: customer.Id,
@@ -378,7 +370,7 @@ class QuickBookServices {
       try {
         const logs = await this.logSync(
           "",
-          "Invoice",
+          RecordType.Invoice,
           realmId,
           LogStatus.Started,
           "Creating invoice process started"
@@ -405,15 +397,16 @@ class QuickBookServices {
           if (err) {
             await this.logSync(
               "",
-              "Invoice",
+              RecordType.Invoice,
               realmId,
               LogStatus.Error,
               "Creating invoice process error",
               logs.id
             );
             resolve({
-              message: ERROR_MESSAGE.ERROR_CREATING_INVOICE_FROM_QUICKBOOKS,
-              error: err,
+              status: 451,
+              message: JSON.stringify(err),
+              document: null,
             });
           } else {
             const createdInvoice = await prisma.invoice.create({
@@ -431,7 +424,7 @@ class QuickBookServices {
             });
             await this.logSync(
               response.Id,
-              "Invoice",
+              RecordType.Invoice,
               realmId,
               LogStatus.Success,
               "Creating invoice process completed",
@@ -445,13 +438,6 @@ class QuickBookServices {
           }
         });
       } catch (error: any) {
-        await this.logSync(
-          realmId,
-          "invoice",
-          realmId,
-          LogStatus.Error,
-          error.message
-        );
         resolve({
           error: error.message,
         });
@@ -468,6 +454,13 @@ class QuickBookServices {
   ): Promise<any> {
     const createPaymentPromise = new Promise(async (resolve) => {
       try {
+        const logs = await this.logSync(
+          "",
+          RecordType.Payment,
+          realmId,
+          LogStatus.Started,
+          "Creating payment process started"
+        );
         const qbo = this.createQuickBooksObject(
           accessToken,
           realmId,
@@ -480,7 +473,7 @@ class QuickBookServices {
         if (!customerExists) {
           resolve({
             status: 400,
-            message: "Customer_does_not_exist",
+            message: VALIDATION_MESSAGE.CUSTOMER_DOES_NOT_EXIST,
           });
           return;
         }
@@ -489,7 +482,7 @@ class QuickBookServices {
         qbo.getInvoice(invoiceId, async (err: any, invoiceObject: any) => {
           if (err) {
             resolve({
-              message: "Invoice not found in quickbook",
+              message: VALIDATION_MESSAGE.INVOICE_NOT_FOUND_IN_QUICKBOOK,
               error: err.message,
             });
             return;
@@ -500,7 +493,8 @@ class QuickBookServices {
           if (paymentObject.CustomerRef.value !== invoiceCustomerId) {
             resolve({
               status: 400,
-              message: "Invoice does not belong to the specified customer",
+              message:
+                VALIDATION_MESSAGE.INVOICE_DOES_NOT_BELONG_TO_THE_SPECIFIED_CUSTOMER,
               error: null,
             });
             return;
@@ -509,7 +503,7 @@ class QuickBookServices {
           if (invoiceObject.Balance <= 0) {
             resolve({
               status: 400,
-              message: "Invoice_has_already_been_fully_paid",
+              message: VALIDATION_MESSAGE.INVOICE_HAS_ALREADY_BEEN_FULLY_PAID,
               error: null,
             });
             return;
@@ -522,7 +516,8 @@ class QuickBookServices {
           if (!invoiceInDatabase || invoiceInDatabase.amount === null) {
             resolve({
               status: 404,
-              message: "Associated_invoice_not_found_in_the_database",
+              message:
+                VALIDATION_MESSAGE.ASSOCIATED_INVOICE_NOT_FOUND_IN_THE_DATABASE,
               error: null,
             });
             return;
@@ -535,7 +530,7 @@ class QuickBookServices {
             resolve({
               status: 400,
               message:
-                "Payment_amount_cannot_be_greater_than_the_total_invoice_amount",
+                VALIDATION_MESSAGE.PAYMENT_AMOUNT_CANNOT_BE_GREATER_THAN_THE_TOTAL_INVOICE_AMOUNT,
               error: null,
             });
             return;
@@ -545,7 +540,7 @@ class QuickBookServices {
             resolve({
               status: 400,
               message:
-                "Payment_amount_cannot_be_greater_than_the_total_invoice_balance",
+                VALIDATION_MESSAGE.PAYMENT_AMOUNT_CANNOT_BE_GREATER_THAN_THE_TOTAL_INVOICE_BALANCE,
               error: null,
             });
             return;
@@ -555,16 +550,17 @@ class QuickBookServices {
           qbo.createPayment(paymentObject, async (err: any, response: any) => {
             if (err) {
               await this.logSync(
-                realmId,
-                "payment",
+                "",
+                RecordType.Payment,
                 realmId,
                 LogStatus.Error,
-                err.message
+                "Creating payment process error",
+                logs.id
               );
               resolve({
-                status: 500,
-                message: "Error creating payment in QuickBooks",
-                error: err,
+                status: 451,
+                message: JSON.stringify(err),
+                document: null,
               });
             } else {
               const createdPayment = await prisma.payment.create({
@@ -581,14 +577,16 @@ class QuickBookServices {
 
               await this.logSync(
                 response.Id,
-                "payment",
+                RecordType.Payment,
                 realmId,
-                LogStatus.Success
+                LogStatus.Success,
+                "Creating payment process completed",
+                logs.id
               );
 
               resolve({
                 status: 200,
-                message: "PAYMENT_CREATED_SUCCESSFULLY",
+                message: SUCCESS_MESSAGES.PAYMENT_CREATED_SUCCESSFULLY,
                 id: paymentObject.Id,
                 createdPayment: createdPayment,
               });
@@ -598,8 +596,8 @@ class QuickBookServices {
       } catch (error: any) {
         resolve({
           status: 500,
-          message: "Unexpected error",
-          error: error,
+          message: ERROR_MESSAGE.SOMETHING_WENT_WRONG,
+          error: error.message,
         });
       }
     });
@@ -612,15 +610,15 @@ class QuickBookServices {
     filter: any,
     page: number,
     pageSize: number
-  ): Promise<any> {
+  ) {
     const { displayName, givenName, customerId } = filter;
 
     const customers = await prisma.customer.findMany({
       where: {
         tenantID: realmId,
-        DisplayName: { contains: displayName },
-        givenName: { contains: givenName },
-        customerId: { contains: customerId },
+        DisplayName: displayName,
+        givenName: givenName,
+        customerId: customerId,
       },
       take: pageSize,
       skip: (page - 1) * pageSize,
@@ -629,9 +627,9 @@ class QuickBookServices {
     const totalCustomers = await prisma.customer.count({
       where: {
         tenantID: realmId,
-        DisplayName: { contains: displayName },
-        givenName: { contains: givenName },
-        customerId: { contains: customerId },
+        DisplayName: displayName,
+        givenName: givenName,
+        customerId: customerId,
       },
     });
 
@@ -648,16 +646,16 @@ class QuickBookServices {
     filter: any,
     page: number,
     pageSize: number
-  ): Promise<any> {
+  ) {
     const { amount, salesItemName, salesItemValue, customerId } = filter;
 
     const invoices = await prisma.invoice.findMany({
       where: {
         tenantID: realmId,
-        amount: { equals: amount },
-        salesItemName: { contains: salesItemName },
-        salesItemValue: { contains: salesItemValue },
-        customerId: { contains: customerId },
+        amount: amount,
+        salesItemName: salesItemName,
+        salesItemValue: salesItemValue,
+        customerId: customerId,
       },
       take: pageSize,
       skip: (page - 1) * pageSize,
@@ -669,10 +667,10 @@ class QuickBookServices {
     const totalInvoices = await prisma.invoice.count({
       where: {
         tenantID: realmId,
-        amount: { equals: amount },
-        salesItemName: { contains: salesItemName },
-        salesItemValue: { contains: salesItemValue },
-        customerId: { contains: customerId },
+        amount: amount,
+        salesItemName: salesItemName,
+        salesItemValue: salesItemValue,
+        customerId: customerId,
       },
     });
 
@@ -689,35 +687,68 @@ class QuickBookServices {
     filter: any,
     page: number,
     pageSize: number
-  ): Promise<any> {
+  ) {
     const { amount, linkedTxnId: invoiceId, customerId } = filter;
 
     const payments = await prisma.payment.findMany({
       where: {
         tenantID: realmId,
-        amount: { equals: amount },
-        linkedTxnId: { contains: invoiceId },
-        customerId: { contains: customerId },
+        amount: amount,
+        linkedTxnId: invoiceId,
+        customerId: customerId,
       },
       take: pageSize,
       skip: (page - 1) * pageSize,
       include: {
         customer: true,
+        invoice : true
       },
     });
 
     const totalPayments = await prisma.payment.count({
       where: {
         tenantID: realmId,
-        amount: { equals: amount },
-        linkedTxnId: { contains: invoiceId },
-        customerId: { contains: customerId },
+        amount: amount,
+        linkedTxnId: invoiceId,
+        customerId: customerId,
       },
     });
 
     return {
       data: payments,
       total: totalPayments,
+      page: page,
+      pageSize: pageSize,
+    };
+  }
+
+  async getSyncLogs(
+    realmId: string,
+    filter: any,
+    page: number,
+    pageSize: number
+  ) {
+    const { recordType } = filter;
+
+    const logs = await prisma.syncLogs.findMany({
+      where: {
+        tenantID: realmId,
+        recordType: recordType,
+      },
+      take: pageSize,
+      skip: (page - 1) * pageSize,
+    });
+
+    const totalLogs = await prisma.syncLogs.count({
+      where: {
+        tenantID: realmId,
+        recordType: recordType,
+      },
+    });
+
+    return {
+      data: logs,
+      total: totalLogs,
       page: page,
       pageSize: pageSize,
     };
