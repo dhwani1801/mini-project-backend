@@ -151,7 +151,7 @@ class QuickbooksController {
         authResponse?.refreshToken as string,
         customerData
       );
-      return res.json({
+      return res.status(result.status).json({
         result: result,
       });
     } catch (err) {
@@ -171,7 +171,7 @@ class QuickbooksController {
         authResponse?.refreshToken as string,
         invoiceObject
       );
-      return res.json({
+      return res.status(result.status).json({
         result: result,
       });
     } catch (err) {
@@ -190,7 +190,7 @@ class QuickbooksController {
         authResponse?.refreshToken as string,
         paymentObject
       );
-      return res.json({
+      return res.status(result.status).json({
         result: result,
       });
     } catch (err) {
@@ -198,11 +198,7 @@ class QuickbooksController {
     }
   }
 
-  async getCustomersList(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
+  async getCustomersList(req: Request, res: Response, next: NextFunction) {
     try {
       const realmId = req.params.realmId;
       const filter = req.query;
@@ -228,11 +224,7 @@ class QuickbooksController {
     }
   }
 
-  async getInvoicesList(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
+  async getInvoicesList(req: Request, res: Response, next: NextFunction) {
     try {
       const realmId = req.params.realmId;
       const filter = req.query;
@@ -258,11 +250,7 @@ class QuickbooksController {
     }
   }
 
-  async getPaymentsList(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
+  async getPaymentsList(req: Request, res: Response, next: NextFunction) {
     try {
       const realmId = req.params.realmId;
       const filter = req.query;
@@ -288,11 +276,7 @@ class QuickbooksController {
     }
   }
 
-  async getSyncLogsList(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
+  async getSyncLogsList(req: Request, res: Response, next: NextFunction) {
     try {
       const realmId = req.params.realmId;
       const filter = req.query;

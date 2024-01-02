@@ -10,16 +10,18 @@ import {
 import { CustomError } from "../models/customError";
 import tokenRepository from "../repositories/tokenRepository";
 import userRepository from "../repositories/userRepository";
+import { VALIDATION_MESSAGE } from "../constants/messages";
+
 class AuthServices {
   async login(email: string, password: string) {
     const user = await userRepository.getByEmail(email);
     if (!user) {
-      throw new CustomError(404, "User does not exist");
+      throw new CustomError(404, VALIDATION_MESSAGE.USER_DOES_NOT_EXIST);
     }
 
     const isPasswordValid = await comparePassword(password, user.password!);
     if (!isPasswordValid) {
-      throw new CustomError(401, "Invalid credentials");
+      throw new CustomError(401, VALIDATION_MESSAGE.INVALID_CREDENTIALS);
     }
 
     if (user.accessToken === null || user.accessToken !== null) {
@@ -34,7 +36,10 @@ class AuthServices {
 
       return updatedUser;
     } else {
-      throw new CustomError(409, "SOMETHING WENT WRONG WHILE LLOGIN");
+      throw new CustomError(
+        409,
+        VALIDATION_MESSAGE.SOMETHING_WENT_WRONG_WHILE_LOGIN
+      );
     }
   }
 
@@ -42,7 +47,10 @@ class AuthServices {
     const user = await userRepository.getByEmail(email);
 
     if (!user) {
-      const error = new CustomError(404, "User does not exist");
+      const error = new CustomError(
+        404,
+        VALIDATION_MESSAGE.USER_DOES_NOT_EXIST
+      );
       throw error;
     }
 
@@ -66,26 +74,29 @@ class AuthServices {
 
   async verifyForgotPassword(token: string) {
     if (!token) {
-      const err = new CustomError(400, "Token missing");
+      const err = new CustomError(400, VALIDATION_MESSAGE.TOKEN_MISSING);
       throw err;
     }
 
     const verified: any = verifyForgotPasswordToken(token);
 
     if (!verified) {
-      const err = new CustomError(401, "Invalid token");
+      const err = new CustomError(401, VALIDATION_MESSAGE.INVALID_TOKEN);
       throw err;
     }
 
     const user = await userRepository.getByEmail(verified?.email as string);
 
     if (!user) {
-      const err = new CustomError(404, "User not found");
+      const err = new CustomError(404, VALIDATION_MESSAGE.USER_NOT_FOUND);
       throw err;
     }
 
     if (user.forgotPasswordToken !== token) {
-      const err = new CustomError(401, "Reset token has expired");
+      const err = new CustomError(
+        401,
+        VALIDATION_MESSAGE.RESET_TOKEN_HAS_EXPIRED
+      );
       throw err;
     }
 
@@ -94,21 +105,21 @@ class AuthServices {
 
   async changePassword(token: string, password: string) {
     if (!token) {
-      const err = new CustomError(400, "Token missing");
+      const err = new CustomError(400, VALIDATION_MESSAGE.TOKEN_MISSING);
       throw err;
     }
 
     const verified: any = await verifyAccessToken(token);
 
     if (!verified) {
-      const err = new CustomError(401, "Invalid token");
+      const err = new CustomError(401, VALIDATION_MESSAGE.INVALID_TOKEN);
       throw err;
     }
 
     const user = await userRepository.getByEmail(verified?.email as string);
 
     if (!user) {
-      const err = new CustomError(404, "User not found");
+      const err = new CustomError(404, VALIDATION_MESSAGE.USER_NOT_FOUND);
       throw err;
     }
 
@@ -118,7 +129,7 @@ class AuthServices {
       if (encrypted) {
         const error = new CustomError(
           422,
-          "New password cannot be the same as the old password"
+          VALIDATION_MESSAGE.NEW_PASSWORD_CANNOT_BE_THE_SAME_AS_THE_OLD_PASSWORD
         );
         throw error;
       }
@@ -136,20 +147,20 @@ class AuthServices {
 
   async setPassword(token: string, password: string) {
     if (!token) {
-      const err = new CustomError(400, "Token missing");
+      const err = new CustomError(400, VALIDATION_MESSAGE.TOKEN_MISSING);
       throw err;
     }
 
     const verified: any = await verifyForgotPasswordToken(token);
     if (!verified) {
-      const err = new CustomError(401, "Invalid token");
+      const err = new CustomError(401, VALIDATION_MESSAGE.INVALID_TOKEN);
       throw err;
     }
 
     const user = await userRepository.getByEmail(verified?.email as string);
 
     if (!user) {
-      const err = new CustomError(404, "User not found");
+      const err = new CustomError(404, VALIDATION_MESSAGE.USER_NOT_FOUND);
       throw err;
     }
 
