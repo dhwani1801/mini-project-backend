@@ -482,6 +482,7 @@ class QuickBookServices {
         qbo.getInvoice(invoiceId, async (err: any, invoiceObject: any) => {
           if (err) {
             resolve({
+              status: 404,
               message: VALIDATION_MESSAGE.INVOICE_NOT_FOUND_IN_QUICKBOOK,
               error: err.message,
             });
