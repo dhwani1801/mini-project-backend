@@ -291,7 +291,7 @@ class QuickbooksController {
       );
 
       res.status(200).json({
-        message: SUCCESS_MESSAGES.PAYMENT_RETRIVED_SUCCESSFULLY,
+        message: SUCCESS_MESSAGES.SYNCLOGS_RETRIVED_SUCCESSFULLY,
         data: result.data,
         total: result.total,
         page: result.page,
