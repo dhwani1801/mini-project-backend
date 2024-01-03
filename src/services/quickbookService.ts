@@ -10,6 +10,8 @@ import {
   VALIDATION_MESSAGE,
 } from "../constants/messages";
 import { RecordType, LogStatus } from "../enum/enum";
+import { InvoiceObject } from "../interfaces/invoiceObject";
+import { CustomerObject } from "../interfaces";
 
 const authClient = new OAuthClient({
   clientId: process.env?.QUICKBOOKS_CLIENT_ID,
@@ -21,9 +23,9 @@ const authClient = new OAuthClient({
 class QuickBookServices {
   async logSync(
     qboId: string,
-    recordType: string,
+    recordType: RecordType,
     tenantID: string,
-    status: string,
+    status: LogStatus,
     message?: string,
     id?: string
   ) {
@@ -200,7 +202,7 @@ class QuickBookServices {
     accessToken: string,
     realmId: string,
     refreshToken: string,
-    customerObject: any
+    customerObject: CustomerObject
   ): Promise<any> {
     try {
       const company = await qbRepository.getCompanyByTenantId(realmId);
@@ -213,6 +215,17 @@ class QuickBookServices {
       }
 
       const tenantName = company.tenantName;
+
+      if (tenantName !== null) {
+        customerObject.CompanyName = tenantName;
+      } else {
+        return {
+          status: 404,
+          message: VALIDATION_MESSAGE.COMPANY_NAME_NOT_FOUND,
+          document: null,
+        };
+      }
+
       customerObject.CompanyName = tenantName;
 
       const qbo = this.createQuickBooksObject(
@@ -226,7 +239,8 @@ class QuickBookServices {
         customerObject,
         realmId
       );
-
+      console.log("customerQueryResponse: ", customerQueryResponse);
+      
       if (customerQueryResponse.status === 200) {
         return customerQueryResponse;
       }
@@ -253,7 +267,7 @@ class QuickBookServices {
 
   async findCustomerInQBO(
     qbo: any,
-    customerObject: any,
+    customerObject: CustomerObject,
     realmId: string
   ): Promise<any> {
     return new Promise(async (resolve) => {
@@ -276,6 +290,7 @@ class QuickBookServices {
             } else {
               if (JSON.stringify(customer.QueryResponse) !== "{}") {
                 resolve({
+                  status : 200,
                   message: SUCCESS_MESSAGES.CUSTOMER_EXISTS,
                   document: customer.QueryResponse.Customer[0].Id,
                 });
@@ -364,7 +379,7 @@ class QuickBookServices {
     accessToken: string,
     realmId: string,
     refreshToken: string,
-    invoiceObject: any
+    invoiceObject: InvoiceObject
   ): Promise<any> {
     const createInvoicePromise = new Promise(async (resolve) => {
       try {
@@ -472,7 +487,7 @@ class QuickBookServices {
 
         if (!customerExists) {
           resolve({
-            status: 400,
+            status: 404,
             message: VALIDATION_MESSAGE.CUSTOMER_DOES_NOT_EXIST,
           });
           return;
@@ -493,7 +508,7 @@ class QuickBookServices {
 
           if (paymentObject.CustomerRef.value !== invoiceCustomerId) {
             resolve({
-              status: 400,
+              status: 404,
               message:
                 VALIDATION_MESSAGE.INVOICE_DOES_NOT_BELONG_TO_THE_SPECIFIED_CUSTOMER,
               error: null,
@@ -702,7 +717,7 @@ class QuickBookServices {
       skip: (page - 1) * pageSize,
       include: {
         customer: true,
-        invoice : true
+        invoice: true,
       },
     });
 

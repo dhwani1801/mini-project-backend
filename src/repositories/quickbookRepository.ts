@@ -1,6 +1,8 @@
 import { prisma } from "../client/prisma";
 import { CompanyInfo } from "../interfaces";
 import { ERROR_MESSAGE } from "../constants/messages";
+import { LogData } from "../interfaces/logsData";
+
 class QuickBookRepository {
   async create(data: CompanyInfo) {
     try {
@@ -27,7 +29,7 @@ class QuickBookRepository {
     }
   }
 
-  async updateCompany(companyId: string, data: any) {
+  async updateCompany(companyId: string, data: CompanyInfo) {
     try {
       const updatedCompany = await prisma.company.update({
         where: {
@@ -66,7 +68,7 @@ class QuickBookRepository {
     }
   }
 
-  async createOrUpdateLog(logData: any) {
+  async createOrUpdateLog(logData: LogData) {
     if (logData.id) {
       const existingLog = await prisma.syncLogs.findUnique({
         where: { id: logData.id },

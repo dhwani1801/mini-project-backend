@@ -108,7 +108,7 @@ class QuickbooksController {
 
       const customerId =
         req.body.eventNotifications[0].dataChangeEvent.entities[0].id;
-      const companyId = company?.id;
+      const companyId  = company?.id;
       const authResponse = await quickbookService.getAccessToken(companyId);
 
       const realmId = authResponse?.tenantID as string;
