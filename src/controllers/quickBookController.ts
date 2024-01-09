@@ -96,6 +96,85 @@ class QuickbooksController {
     }
   }
 
+  async getAllAccountTypes(
+    req: RequestExtended,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const companyId = req.body.companyId;
+      const authResponse = await quickbookService.getAccessToken(companyId);
+
+      const customersList: any = await quickbookService.getAccountTypesFromQbo(
+        authResponse?.accessToken as string,
+        authResponse?.tenantID as string,
+        authResponse?.refreshToken as string
+      );
+
+      return DefaultResponse(
+        res,
+        200,
+        SUCCESS_MESSAGES.ACCOUNTS_TYPES_FETCHED_SUCCESSFULLY,
+        customersList?.QueryResponse?.Account
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getAllQBOPamentMethods(
+    req: RequestExtended,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const companyId = req.body.companyId;
+      const authResponse = await quickbookService.getAccessToken(companyId);
+
+      const customersList: any =
+        await quickbookService.getPaymentMethodsFromQbo(
+          authResponse?.accessToken as string,
+          authResponse?.tenantID as string,
+          authResponse?.refreshToken as string
+        );
+
+      return DefaultResponse(
+        res,
+        200,
+        SUCCESS_MESSAGES.ACCOUNTS_TYPES_FETCHED_SUCCESSFULLY,
+        customersList?.QueryResponse?.PaymentMethod
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getAllQBOItems(
+    req: RequestExtended,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const companyId = req.body.companyId;
+      const authResponse = await quickbookService.getAccessToken(companyId);
+
+      const itemsList: any = await quickbookService.getItemsFromQbo(
+        authResponse?.accessToken as string,
+        authResponse?.tenantID as string,
+        authResponse?.refreshToken as string
+      );
+
+      return DefaultResponse(
+        res,
+        200,
+        SUCCESS_MESSAGES.ITEMS_FETCHED_SUCCESSFULLY,
+        itemsList?.QueryResponse
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getCustomerInfoUsingWebhook(
     req: RequestExtended,
     res: Response,
@@ -108,7 +187,7 @@ class QuickbooksController {
 
       const customerId =
         req.body.eventNotifications[0].dataChangeEvent.entities[0].id;
-      const companyId  = company?.id;
+      const companyId = company?.id;
       const authResponse = await quickbookService.getAccessToken(companyId);
 
       const realmId = authResponse?.tenantID as string;
@@ -136,6 +215,29 @@ class QuickbooksController {
     }
   }
 
+  // async createCustomer(
+  //   req: RequestExtended,
+  //   res: Response,
+  //   next: NextFunction
+  // ) {
+  //   try {
+  //     const companyId = req.params.companyId;
+  //     const authResponse = await quickbookService.getAccessToken(companyId);
+  //     const customerData = req.body;
+  //     const result = await quickbookService.createCustomer(
+  //       authResponse?.accessToken as string,
+  //       authResponse?.tenantID as string,
+  //       authResponse?.refreshToken as string,
+  //       customerData
+  //     );
+  //     return res.status(result.status).json({
+  //       result: result,
+  //     });
+  //   } catch (err) {
+  //     next(err);
+  //   }
+  // }
+
   async createCustomer(
     req: RequestExtended,
     res: Response,
@@ -144,13 +246,12 @@ class QuickbooksController {
     try {
       const companyId = req.params.companyId;
       const authResponse = await quickbookService.getAccessToken(companyId);
-      const customerData = req.body;
       const result = await quickbookService.createCustomer(
         authResponse?.accessToken as string,
         authResponse?.tenantID as string,
-        authResponse?.refreshToken as string,
-        customerData
+        authResponse?.refreshToken as string
       );
+
       return res.status(result.status).json({
         result: result,
       });
@@ -159,44 +260,43 @@ class QuickbooksController {
     }
   }
 
-  async createInvoice(req: RequestExtended, res: Response, next: NextFunction) {
-    try {
-      const companyId = req.params.companyId;
-      const authResponse = await quickbookService.getAccessToken(companyId);
-      const invoiceObject = req.body;
+  // async createInvoice(req: RequestExtended, res: Response, next: NextFunction) {
+  //   try {
+  //     const companyId = req.params.companyId;
+  //     const authResponse = await quickbookService.getAccessToken(companyId);
+  //     // const invoiceObject = req.body;
+  //     const result = await quickbookService.createInvoice(
+  //       authResponse?.accessToken as string,
+  //       authResponse?.tenantID as string,
+  //       authResponse?.refreshToken as string
+  //       //    invoiceObject
+  //     );
+  //     return res.status(result.status).json({
+  //       result: result,
+  //     });
+  //   } catch (err) {
+  //     next(err);
+  //   }
+  // }
 
-      const result = await quickbookService.createInvoice(
-        authResponse?.accessToken as string,
-        authResponse?.tenantID as string,
-        authResponse?.refreshToken as string,
-        invoiceObject
-      );
-      return res.status(result.status).json({
-        result: result,
-      });
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async createPayment(req: RequestExtended, res: Response, next: NextFunction) {
-    try {
-      const companyId = req.params.companyId;
-      const authResponse = await quickbookService.getAccessToken(companyId);
-      const paymentObject = req.body;
-      const result = await quickbookService.createPayment(
-        authResponse?.accessToken as string,
-        authResponse?.tenantID as string,
-        authResponse?.refreshToken as string,
-        paymentObject
-      );
-      return res.status(result.status).json({
-        result: result,
-      });
-    } catch (err) {
-      next(err);
-    }
-  }
+  // async createPayment(req: RequestExtended, res: Response, next: NextFunction) {
+  //   try {
+  //     const companyId = req.params.companyId;
+  //     const authResponse = await quickbookService.getAccessToken(companyId);
+  //     const paymentObject = req.body;
+  //     const result = await quickbookService.createPayment(
+  //       authResponse?.accessToken as string,
+  //       authResponse?.tenantID as string,
+  //       authResponse?.refreshToken as string,
+  //   //    paymentObject
+  //     );
+  //     return res.status(result.status).json({
+  //       result: result,
+  //     });
+  //   } catch (err) {
+  //     next(err);
+  //   }
+  // }
 
   async getCustomersList(req: Request, res: Response, next: NextFunction) {
     try {
@@ -299,6 +399,24 @@ class QuickbooksController {
       });
     } catch (error: any) {
       next(error);
+    }
+  }
+
+  async syncData(req: Request, res: Response, next: NextFunction) {
+    try {
+      const companyId = req.params.companyId;
+      const authResponse = await quickbookService.getAccessToken(companyId);
+
+      const result = await quickbookService.syncProcess(
+        authResponse?.accessToken as string,
+        authResponse?.tenantID as string,
+        authResponse?.refreshToken as string
+      );
+      return res.status(result.status).json({
+        result: result,
+      });
+    } catch (err) {
+      next(err);
     }
   }
 }
