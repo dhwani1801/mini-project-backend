@@ -16,7 +16,7 @@ router.post("/callback", quickbooksController.createIntegration);
 
 //router.post("/payment/:companyId", quickbooksController.createPayment);
 
-router.post("/createCustomer/:companyId", quickbooksController.createCustomer);
+//router.post("/createCustomer/:companyId", quickbooksController.createCustomer);
 
 //router.post("/invoice/:companyId", quickbooksController.createInvoice);
 

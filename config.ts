@@ -18,6 +18,7 @@ function config(Env: any) {
         resetPasswordReactUrl: `${Env?.REACT_APP_BASE_URL}/reset-password`,
         verifyEmail: `${Env?.REACT_APP_BASE_URL}/login`,
         reactAppBaseUrl: Env?.REACT_APP_BASE_URL,
+		detailType : Env?.DetailType
 	};
 }
 

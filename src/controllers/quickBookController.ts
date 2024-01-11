@@ -223,13 +223,12 @@ class QuickbooksController {
   //   try {
   //     const companyId = req.params.companyId;
   //     const authResponse = await quickbookService.getAccessToken(companyId);
-  //     const customerData = req.body;
   //     const result = await quickbookService.createCustomer(
   //       authResponse?.accessToken as string,
   //       authResponse?.tenantID as string,
-  //       authResponse?.refreshToken as string,
-  //       customerData
+  //       authResponse?.refreshToken as string
   //     );
+
   //     return res.status(result.status).json({
   //       result: result,
   //     });
@@ -237,28 +236,6 @@ class QuickbooksController {
   //     next(err);
   //   }
   // }
-
-  async createCustomer(
-    req: RequestExtended,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      const companyId = req.params.companyId;
-      const authResponse = await quickbookService.getAccessToken(companyId);
-      const result = await quickbookService.createCustomer(
-        authResponse?.accessToken as string,
-        authResponse?.tenantID as string,
-        authResponse?.refreshToken as string
-      );
-
-      return res.status(result.status).json({
-        result: result,
-      });
-    } catch (err) {
-      next(err);
-    }
-  }
 
   // async createInvoice(req: RequestExtended, res: Response, next: NextFunction) {
   //   try {
