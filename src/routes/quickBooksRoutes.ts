@@ -13,7 +13,7 @@ router.get("/depositList", quickbooksController.getAllAccountTypes);
 router.get("/paymentMethodList", quickbooksController.getAllQBOPamentMethods);
 
 router.post("/callback", quickbooksController.createIntegration);
-
+router.post("/createConfiguration", quickbooksController.createConfiguration);
 //router.post("/payment/:companyId", quickbooksController.createPayment);
 
 //router.post("/createCustomer/:companyId", quickbooksController.createCustomer);
