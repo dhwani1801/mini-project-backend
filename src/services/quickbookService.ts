@@ -389,6 +389,7 @@ class QuickBookServices {
                 });
               } else {
                 resolve({
+                  status: 404,
                   message: VALIDATION_MESSAGE.CUSTOMER_DOES_NOT_EXIST,
                   document: null,
                 });
@@ -396,9 +397,10 @@ class QuickBookServices {
             }
           }
         );
-      } catch (err) {
+      } catch (err: any) {
         resolve({
-          message: err,
+          status: 500,
+          message: err.mesage,
           document: null,
         });
       }
@@ -441,9 +443,10 @@ class QuickBookServices {
             });
           }
         });
-      } catch (err) {
+      } catch (err: any) {
         resolve({
-          message: err,
+          status: 500,
+          message: err.message,
           document: null,
         });
       }
@@ -500,6 +503,7 @@ class QuickBookServices {
         });
       } catch (error: any) {
         resolve({
+          status: 500,
           error: error.message,
         });
       }
@@ -677,9 +681,10 @@ class QuickBookServices {
             }
           }
         );
-      } catch (err) {
+      } catch (err: any) {
         resolve({
-          message: err,
+          status: 500,
+          message: err.message,
           document: null,
         });
       }
@@ -941,12 +946,127 @@ class QuickBookServices {
     };
   }
 
+  // async syncProcess(
+  //   accessToken: string,
+  //   realmId: string,
+  //   refreshToken: string,
+  //   customerData: any,
+  //   invoiceData: any,
+  //   paymentObject: any
+  // ): Promise<any> {
+  //   const company = await qbRepository.getCompanyByTenantId(realmId);
+  //   if (!company) {
+  //     return {
+  //       status: 404,
+  //       message: VALIDATION_MESSAGE.COMPANY_NOT_FOUND,
+  //     };
+  //   }
+
+  //   const qbo = this.createQuickBooksObject(accessToken, realmId, refreshToken);
+
+  //   //check for existing invoice with same invoice number
+  //   for (const invoiceObject of invoiceData) {
+  //     const existingInvoice = await this.getExistingInvoice(
+  //       qbo,
+  //       realmId,
+  //       invoiceObject
+  //     );
+  //     if (existingInvoice.status === 200) {
+  //       for (const paymentData of paymentObject) {
+  //         return await this.createPayment(
+  //           accessToken,
+  //           realmId,
+  //           refreshToken,
+  //           paymentData,
+  //           existingInvoice.invoice.QueryResponse.Invoice[0].Id,
+  //           existingInvoice.invoice.QueryResponse.Invoice[0].CustomerRef.value
+  //         );
+  //       }
+  //     }
+  //   }
+
+  //   for (const customerObject of customerData) {
+  //     //check if customer exists or not
+  //     const customerQueryResponse = await this.findCustomerInQBO(
+  //       qbo,
+  //       realmId,
+  //       customerObject
+  //     );
+
+  //     //create invoice for the existing customer
+  //     if (customerQueryResponse.status === 200) {
+  //       for (const invoiceObject of invoiceData) {
+  //         const invoiceResponse = await this.createInvoice(
+  //           accessToken,
+  //           realmId,
+  //           refreshToken,
+  //           invoiceObject,
+  //           customerQueryResponse.document
+  //         );
+
+  //         //create payment for the invoice
+  //         if (invoiceResponse.status === 200) {
+  //           for (const paymentData of paymentObject) {
+  //             return await this.createPayment(
+  //               accessToken,
+  //               realmId,
+  //               refreshToken,
+  //               paymentData,
+  //               invoiceResponse.createdInvoice.qboInvoiceId,
+  //               invoiceResponse.createdInvoice.customerId
+  //             );
+  //           }
+  //         } else {
+  //           return invoiceResponse;
+  //         }
+  //       }
+  //     }
+  //     //create customer if not exists
+  //     const customerEntity = await this.createCustomerInQBO(
+  //       qbo,
+  //       realmId,
+  //       customerObject
+  //     );
+
+  //     if (customerEntity.status !== 200) {
+  //       return customerEntity;
+  //     }
+
+  //     //create invoice for the newly created customer
+  //     for (const invoiceObject of invoiceData) {
+  //       const invoiceResponse = await this.createInvoice(
+  //         accessToken,
+  //         realmId,
+  //         refreshToken,
+  //         invoiceObject,
+  //         customerEntity.id
+  //       );
+
+  //       if (invoiceResponse.status === 200) {
+  //         //create payment for the invoice
+  //         for (const paymentData of paymentObject) {
+  //           return await this.createPayment(
+  //             accessToken,
+  //             realmId,
+  //             refreshToken,
+  //             paymentData,
+  //             invoiceResponse.createdInvoice.qboInvoiceId,
+  //             invoiceResponse.createdInvoice.customerId
+  //           );
+  //         }
+  //       } else {
+  //         return invoiceResponse;
+  //       }
+  //     }
+  //   }
+  // }
+
   async syncProcess(
     accessToken: string,
     realmId: string,
     refreshToken: string,
-    customerObject: any,
-    invoiceObject: any,
+    customerData: any,
+    invoiceData: any,
     paymentObject: any
   ): Promise<any> {
     const company = await qbRepository.getCompanyByTenantId(realmId);
@@ -959,87 +1079,94 @@ class QuickBookServices {
 
     const qbo = this.createQuickBooksObject(accessToken, realmId, refreshToken);
 
-    //check for existing invoice with same invoice number
-    const existingInvoice = await this.getExistingInvoice(
-      qbo,
-      realmId,
-      invoiceObject
-    );
-    if (existingInvoice.status === 200) {
-      return await this.createPayment(
-        accessToken,
+    for (const invoiceObject of invoiceData) {
+      const existingInvoice = await this.getExistingInvoice(
+        qbo,
         realmId,
-        refreshToken,
-        paymentObject,
-        existingInvoice.invoice.QueryResponse.Invoice[0].Id,
-        existingInvoice.invoice.QueryResponse.Invoice[0].CustomerRef.value
+        invoiceObject
       );
-    }
-
-    //check if customer exists or not
-    const customerQueryResponse = await this.findCustomerInQBO(
-      qbo,
-      realmId,
-      customerObject
-    );
-
-    //create invoice for the existing customer
-    if (customerQueryResponse.status === 200) {
-      const invoiceResponse = await this.createInvoice(
-        accessToken,
-        realmId,
-        refreshToken,
-        invoiceObject,
-        customerQueryResponse.document
-      );
-
-      //create payment for the invoice
-      if (invoiceResponse.status === 200) {
-        return await this.createPayment(
-          accessToken,
-          realmId,
-          refreshToken,
-          paymentObject,
-          invoiceResponse.createdInvoice.qboInvoiceId,
-          invoiceResponse.createdInvoice.customerId
-        );
-      } else {
-        return invoiceResponse;
+      if (existingInvoice.status === 200) {
+        for (const paymentData of paymentObject) {
+          await this.createPayment(
+            accessToken,
+            realmId,
+            refreshToken,
+            paymentData,
+            existingInvoice.invoice.QueryResponse.Invoice[0].Id,
+            existingInvoice.invoice.QueryResponse.Invoice[0].CustomerRef.value
+          );
+        }
       }
     }
 
-    //create customer if not exists
-    const customerEntity = await this.createCustomerInQBO(
-      qbo,
-      realmId,
-      customerObject
-    );
-
-    if (customerEntity.status !== 200) {
-      return customerEntity;
-    }
-
-    //create invoice for the newly created customer
-    const invoiceResponse = await this.createInvoice(
-      accessToken,
-      realmId,
-      refreshToken,
-      invoiceObject,
-      customerEntity.id
-    );
-
-    if (invoiceResponse.status === 200) {
-      //create payment for the invoice
-      return await this.createPayment(
-        accessToken,
+    for (const customerObject of customerData) {
+      const customerQueryResponse = await this.findCustomerInQBO(
+        qbo,
         realmId,
-        refreshToken,
-        paymentObject,
-        invoiceResponse.createdInvoice.qboInvoiceId,
-        invoiceResponse.createdInvoice.customerId
+        customerObject
       );
-    } else {
-      return invoiceResponse;
+
+      if (customerQueryResponse.status === 200) {
+        for (const invoiceObject of invoiceData) {
+          const invoiceResponse = await this.createInvoice(
+            accessToken,
+            realmId,
+            refreshToken,
+            invoiceObject,
+            customerQueryResponse.document
+          );
+
+          if (invoiceResponse.status === 200) {
+            for (const paymentData of paymentObject) {
+              await this.createPayment(
+                accessToken,
+                realmId,
+                refreshToken,
+                paymentData,
+                invoiceResponse.createdInvoice.qboInvoiceId,
+                invoiceResponse.createdInvoice.customerId
+              );
+            }
+          } else {
+            return invoiceResponse;
+          }
+        }
+      }
+
+      const customerEntity = await this.createCustomerInQBO(
+        qbo,
+        realmId,
+        customerObject
+      );
+
+      if (customerEntity.status !== 200) {
+        return customerEntity;
+      }
+
+      for (const invoiceObject of invoiceData) {
+        const invoiceResponse = await this.createInvoice(
+          accessToken,
+          realmId,
+          refreshToken,
+          invoiceObject,
+          customerEntity.id
+        );
+
+        if (invoiceResponse.status === 200) {
+          for (const paymentData of paymentObject) {
+            await this.createPayment(
+              accessToken,
+              realmId,
+              refreshToken,
+              paymentData,
+              invoiceResponse.createdInvoice.qboInvoiceId,
+              invoiceResponse.createdInvoice.customerId
+            );
+          }
+        } else {
+          return invoiceResponse;
+        }
+      }
     }
   }
 }
