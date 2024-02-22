@@ -14,13 +14,9 @@ router.get("/paymentMethodList", quickbooksController.getAllQBOPamentMethods);
 
 router.post("/callback", quickbooksController.createIntegration);
 router.post("/createConfiguration", quickbooksController.createConfiguration);
-//router.post("/payment/:companyId", quickbooksController.createPayment);
-
-//router.post("/createCustomer/:companyId", quickbooksController.createCustomer);
-
-//router.post("/invoice/:companyId", quickbooksController.createInvoice);
 
 router.post("/sync/:companyId", quickbooksController.syncData);
+
 router.post(
   "/webhook-endpoint",
   quickbooksController.getCustomerInfoUsingWebhook

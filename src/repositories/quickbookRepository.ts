@@ -84,19 +84,6 @@ class QuickBookRepository {
       }
     }
 
-    const existingLogWithQboId = await prisma.syncLogs.findUnique({
-      where: { qboId: logData.qboId },
-    });
-
-    if (existingLogWithQboId) {
-      const updatedLog = await prisma.syncLogs.update({
-        where: { qboId: logData.qboId },
-        data: logData,
-      });
-
-      return updatedLog;
-    }
-
     const newLog = await prisma.syncLogs.create({
       data: logData,
     });

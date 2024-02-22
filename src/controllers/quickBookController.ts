@@ -337,121 +337,32 @@ class QuickbooksController {
     }
   }
 
-  // async syncData(req: Request, res: Response, next: NextFunction) {
-  //   try {
-  //     const companyId = req.params.companyId;
-  //     const authResponse = await quickbookService.getAccessToken(companyId);
-  //     const data = req.body.data;
-  //     const customerData = data.find((item: any) => item.event === "customer");
-  //     const invoiceData = data.find((item: any) => item.event === "invoice");
-  //     const paymentData = data.find((item: any) => item.event === "payment");
-
-  //     const result = await quickbookService.syncProcess(
-  //       authResponse?.accessToken as string,
-  //       authResponse?.tenantID as string,
-  //       authResponse?.refreshToken as string,
-  //       customerData,
-  //       invoiceData,
-  //       paymentData
-  //     );
-
-  //     return res.status(result.status).json({
-  //       result: result,
-  //     });
-  //   } catch (err) {
-  //     next(err);
-  //   }
-  // }
-
   async syncData(req: Request, res: Response, next: NextFunction) {
     try {
       const companyId = req.params.companyId;
       const authResponse = await quickbookService.getAccessToken(companyId);
-      const data = req.body.data;
-      console.log("dataaa : ", data);
-      const customerMap: { [key: string]: any } = {};
 
-      data
-        .filter((item: any) => item.event === "customer")
-        .forEach((customer: any) => {
-          customerMap[customer.id] = customer;
-        });
+      const { data } = req.body;
 
-      const invoices = data.filter((item: any) => item.event === "invoice");
-      const payments = data.filter((item: any) => item.event === "payment");
-
-      const invoiceIdToCustomerId: any = {};
-      const paymentInvoiceIdToInvoiceId: any = {};
-
-      invoices.forEach((invoice: any) => {
-        invoiceIdToCustomerId[invoice.id] = invoice.customerId;
-      });
-
-      payments.forEach((payment: any) => {
-        paymentInvoiceIdToInvoiceId[payment.invoiceId] = payment.id;
-      });
-      console.log("customer data : ", Object.values(customerMap));
-      console.log("invoice data : ", invoices);
-      console.log(
-        "payment data : ",
-        payments.map((payment: any) => {
-          return {
-            ...payment,
-            invoiceId: paymentInvoiceIdToInvoiceId[payment.invoiceId],
-            customerId: invoiceIdToCustomerId[payment.invoiceId],
-          };
-        })
+      const customerData = data.filter(
+        (item: any) => item.event === "customer"
       );
-      const customerInvoices: { [key: string]: any[] } = {};
-      invoices.forEach((invoice: any) => {
-        const customerId = invoice.customerId;
-        if (!customerInvoices[customerId]) {
-          customerInvoices[customerId] = [];
-        }
-        customerInvoices[customerId].push(invoice);
-      });
 
-      const result: any = await Promise.all(
-        Object.entries(customerInvoices).map(
-          async ([customerId, invoicesForCustomer]) => {
-            const result = await quickbookService.syncProcess(
-              authResponse?.accessToken as string,
-              authResponse?.tenantID as string,
-              authResponse?.refreshToken as string,
-              Object.values(customerMap).filter(
-                (customer: any) => customer.id === customerId
-              ),
-              invoicesForCustomer,
-              payments.map((payment: any) => {
-                return {
-                  ...payment,
-                  invoiceId: paymentInvoiceIdToInvoiceId[payment.invoiceId],
-                  customerId: invoiceIdToCustomerId[payment.invoiceId],
-                };
-              })
-            );
-            return result;
-          }
-        )
+      const invoiceData = data.filter((item: any) => item.event === "invoice");
+
+      const paymentObject = data.filter(
+        (item: any) => item.event === "payment"
       );
-      // const result = await quickbookService.syncProcess(
-      //   authResponse?.accessToken as string,
-      //   authResponse?.tenantID as string,
-      //   authResponse?.refreshToken as string,
-      //   Object.values(customerMap),
-      //   invoices,
-      //   payments.map((payment: any) => {
-      //     return {
-      //       ...payment,
-      //       invoiceId: paymentInvoiceIdToInvoiceId[payment.invoiceId],
-      //       customerId: invoiceIdToCustomerId[payment.invoiceId],
-      //     };
-      //   })
-      // );
 
-      return res.status(result.status).json({
-        result: result,
-      });
+      const result = await quickBookService.quickBookService.newSyncProcess(
+        authResponse?.accessToken as string,
+        authResponse?.tenantID as string,
+        authResponse?.refreshToken as string,
+        customerData,
+        invoiceData,
+        paymentObject
+      );
+      res.json(result);
     } catch (err: any) {
       next(err.message);
     }

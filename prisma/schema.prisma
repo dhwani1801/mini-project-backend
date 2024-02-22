@@ -79,11 +79,22 @@ model Payment {
 
 model syncLogs {
   id             String      @id @default(uuid())
-  qboId          String?      @unique
+  qboId          String?     
+  dbId           String?
   recordType     String?
   tenantID       String?   
   status         String?
   message        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model SyncedData {
+  id             String      @id @default(uuid())
+  dbId           String
+  qboId          String
+  recordType     String  
+  data           String 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
